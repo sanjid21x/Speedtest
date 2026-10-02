@@ -1,13 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { NetworkCategory, SpeedTestServer } from '../types/speedtest';
 import {
   getAllServers,
   saveCustomServer,
   deleteCustomServer,
-  setSelectedServerId,
+  setActiveServerId,
   NETWORK_CATEGORIES,
 } from '../services/servers';
-import { Server, Plus, Trash2, X, CheckCircle, MapPin, Tag } from 'lucide-react';
+import { Server, Plus, Trash2, X, CheckCircle, MapPin, Search, Globe, ChevronDown } from 'lucide-react';
 
 interface ServerSelectorProps {
   activeServer: SpeedTestServer;
@@ -24,7 +24,9 @@ export const ServerSelector: React.FC<ServerSelectorProps> = ({
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
-  const [servers, setServers] = useState<SpeedTestServer[]>(getAllServers());
+  const [servers, setServers] = useState<SpeedTestServer[]>(() => getAllServers());
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
 
   // Form state for custom server
   const [formName, setFormName] = useState('');
@@ -40,7 +42,7 @@ export const ServerSelector: React.FC<ServerSelectorProps> = ({
   };
 
   const handleSelect = (server: SpeedTestServer) => {
-    setSelectedServerId(server.id);
+    setActiveServerId(server.id);
     onServerChange(server);
     setIsOpen(false);
   };
@@ -82,6 +84,23 @@ export const ServerSelector: React.FC<ServerSelectorProps> = ({
     setFormUploadUrl('');
   };
 
+  const filteredServers = useMemo(() => {
+    return servers.filter((s) => {
+      const matchesSearch =
+        searchQuery === '' ||
+        s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        s.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        s.provider.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (s.country && s.country.toLowerCase().includes(searchQuery.toLowerCase()));
+
+      const matchesCat = selectedCategory === 'all' || s.category === selectedCategory;
+
+      return matchesSearch && matchesCat;
+    });
+  }, [servers, searchQuery, selectedCategory]);
+
+  const isDark = theme === 'dark';
+
   return (
     <div className="relative">
       {/* Trigger Button */}
@@ -90,113 +109,170 @@ export const ServerSelector: React.FC<ServerSelectorProps> = ({
         disabled={disabled}
         type="button"
         className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium border transition-all cursor-pointer ${
-          disabled ? 'opacity-60 cursor-not-allowed' : 'hover:border-cyan-500/50'
+          disabled ? 'opacity-60 cursor-not-allowed' : 'hover:border-cyan-500/50 hover:shadow-cyan-500/20 shadow-sm'
         } ${
-          theme === 'dark'
+          isDark
             ? 'bg-slate-900/80 border-slate-800 text-slate-300'
             : 'bg-white border-slate-200 text-slate-700 shadow-sm'
         }`}
       >
         <Server className="w-3.5 h-3.5 text-cyan-400" />
-        <span className="font-semibold text-slate-200 truncate max-w-[120px] sm:max-w-[170px]">
+        <span className="text-sm">{activeServer.flag || '🌐'}</span>
+        <span className="font-semibold text-slate-200 truncate max-w-[120px] sm:max-w-[180px]">
           {activeServer.name}
         </span>
-        <span className="text-[10px] px-1.5 py-0.2 rounded font-mono font-semibold bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 hidden sm:inline">
+        <span className="text-[10px] px-1.5 py-0.5 rounded font-mono font-semibold bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 hidden sm:inline">
           {activeServer.categoryLabel}
         </span>
+        <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
       </button>
 
-      {/* Dropdown Menu */}
+      {/* Vast Server Dropdown Modal */}
       {isOpen && (
         <>
+          <div className="fixed inset-0 z-30" onClick={() => setIsOpen(false)} />
           <div
-            className="fixed inset-0 z-30"
-            onClick={() => setIsOpen(false)}
-          />
-          <div
-            className={`absolute right-0 sm:left-0 sm:right-auto mt-2 w-80 sm:w-96 rounded-2xl border p-2 shadow-2xl z-40 animate-fade-in ${
-              theme === 'dark'
-                ? 'bg-slate-900/95 border-slate-800 text-slate-100 backdrop-blur-xl'
+            className={`absolute right-0 sm:left-0 sm:right-auto mt-2 w-88 sm:w-[460px] rounded-2xl border p-3 shadow-2xl z-40 animate-fade-in ${
+              isDark
+                ? 'bg-slate-900/95 border-slate-800 text-slate-100 backdrop-blur-2xl'
                 : 'bg-white border-slate-200 text-slate-800 shadow-slate-200'
             }`}
           >
-            <div className="flex items-center justify-between px-3 py-2 border-b border-slate-800/40">
+            {/* Header & Add Button */}
+            <div className="flex items-center justify-between px-2 pb-2.5 border-b border-slate-800/40">
               <div>
-                <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                  Select Test Endpoint
+                <span className="text-xs font-bold uppercase tracking-wider text-cyan-400 flex items-center gap-1.5">
+                  <Globe className="w-3.5 h-3.5" />
+                  Select Endpoint ({servers.length} Available)
                 </span>
-                <p className="text-[10px] text-slate-500">Global CDN, GGC, FNA, IIG, BDIX</p>
+                <p className="text-[10px] text-slate-400">
+                  Select BDIX, IIG, FNA, GGC, or CDN test endpoint
+                </p>
               </div>
               <button
                 onClick={() => {
                   setIsOpen(false);
                   setShowAddModal(true);
                 }}
-                className="flex items-center gap-1 text-[11px] font-semibold text-cyan-400 hover:text-cyan-300 cursor-pointer"
+                className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 text-xs font-bold transition-all cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5" />
-                <span>Add Node</span>
+                <span>Custom Node</span>
               </button>
             </div>
 
-            <div className="max-h-72 overflow-y-auto divide-y divide-slate-800/20 py-1">
-              {servers.map((srv) => {
-                const isSelected = srv.id === activeServer.id;
-                return (
-                  <div
-                    key={srv.id}
-                    onClick={() => handleSelect(srv)}
-                    className={`flex items-center justify-between px-3 py-2.5 rounded-lg cursor-pointer transition-colors ${
-                      isSelected
-                        ? theme === 'dark'
-                          ? 'bg-cyan-500/10 text-cyan-300'
-                          : 'bg-cyan-50 text-cyan-900'
-                        : theme === 'dark'
-                        ? 'hover:bg-slate-800/60 text-slate-300'
-                        : 'hover:bg-slate-100 text-slate-700'
-                    }`}
-                  >
-                    <div className="flex flex-col truncate pr-2">
-                      <div className="flex items-center gap-1.5">
-                        <span className="font-semibold text-xs truncate">
-                          {srv.name}
-                        </span>
-                        <span className="text-[9px] px-1.5 py-0.2 rounded font-mono font-medium bg-slate-800 text-slate-300 border border-slate-700">
-                          {srv.categoryLabel}
-                        </span>
-                        {srv.isCustom && (
-                          <span className="text-[9px] px-1.5 py-0.2 rounded bg-purple-500/20 text-purple-300">
-                            Custom
-                          </span>
-                        )}
-                      </div>
-                      <span className="text-[10px] text-slate-400 truncate">
-                        {srv.location}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center gap-1">
-                      {isSelected && (
-                        <CheckCircle className="w-4 h-4 text-cyan-400 shrink-0" />
-                      )}
-                      {srv.isCustom && (
-                        <button
-                          onClick={(e) => handleDelete(e, srv.id)}
-                          type="button"
-                          className="p-1 rounded text-slate-500 hover:text-rose-400 transition-colors cursor-pointer"
-                          title="Delete custom node"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
+            {/* Live Search Input */}
+            <div className="relative mt-2.5 mb-2">
+              <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search by city, country, ISP, or provider..."
+                className="w-full pl-9 pr-3 py-1.5 text-xs rounded-xl bg-slate-950/70 border border-slate-800 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-500"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              )}
             </div>
 
-            <div className="p-2 border-t border-slate-800/40 text-[10px] text-slate-500">
-              Supports dedicated local peering (BDIX), Google GGC, Meta FNA, and International IIG gateways.
+            {/* Category Quick Filter */}
+            <div className="flex items-center gap-1 overflow-x-auto py-1 scrollbar-none mb-2 text-[11px]">
+              <button
+                onClick={() => setSelectedCategory('all')}
+                className={`px-2.5 py-0.5 rounded-lg font-medium whitespace-nowrap transition-all ${
+                  selectedCategory === 'all'
+                    ? 'bg-cyan-500 text-slate-950 font-bold'
+                    : 'bg-slate-800/60 text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                All ({servers.length})
+              </button>
+              {NETWORK_CATEGORIES.map((cat) => (
+                <button
+                  key={cat.id}
+                  onClick={() => setSelectedCategory(cat.id)}
+                  className={`px-2 py-0.5 rounded-lg font-medium whitespace-nowrap transition-all ${
+                    selectedCategory === cat.id
+                      ? 'bg-cyan-500 text-slate-950 font-bold'
+                      : 'bg-slate-800/60 text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  {cat.badge}
+                </button>
+              ))}
+            </div>
+
+            {/* Server List */}
+            <div className="max-h-80 overflow-y-auto divide-y divide-slate-800/20 pr-1 space-y-1">
+              {filteredServers.length === 0 ? (
+                <div className="p-6 text-center text-xs text-slate-500">
+                  No servers match "{searchQuery}"
+                </div>
+              ) : (
+                filteredServers.map((srv) => {
+                  const isSelected = srv.id === activeServer.id;
+                  return (
+                    <div
+                      key={srv.id}
+                      onClick={() => handleSelect(srv)}
+                      className={`flex items-center justify-between px-3 py-2.5 rounded-xl cursor-pointer transition-colors ${
+                        isSelected
+                          ? 'bg-cyan-500/15 border border-cyan-500/30 text-cyan-200'
+                          : isDark
+                          ? 'hover:bg-slate-800/60 text-slate-300'
+                          : 'hover:bg-slate-100 text-slate-700'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5 truncate pr-2">
+                        <span className="text-lg">{srv.flag || '🌐'}</span>
+                        <div className="flex flex-col truncate">
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-bold text-xs truncate text-slate-100">
+                              {srv.name}
+                            </span>
+                            <span className="text-[9px] px-1.5 py-0.5 rounded font-mono font-semibold bg-slate-800 text-cyan-400 border border-slate-700">
+                              {srv.categoryLabel}
+                            </span>
+                            {srv.isCustom && (
+                              <span className="text-[9px] px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300">
+                                Custom
+                              </span>
+                            )}
+                          </div>
+                          <span className="text-[11px] text-slate-400 truncate">
+                            {srv.location} • <span className="text-slate-500">{srv.provider}</span>
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 shrink-0">
+                        {isSelected && <CheckCircle className="w-4 h-4 text-cyan-400" />}
+                        {srv.isCustom && (
+                          <button
+                            onClick={(e) => handleDelete(e, srv.id)}
+                            type="button"
+                            className="p-1 rounded text-slate-500 hover:text-rose-400 transition-colors"
+                            title="Delete custom node"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            <div className="p-2 border-t border-slate-800/40 text-[10px] text-slate-400 flex items-center justify-between">
+              <span>Select any node for targeted bandwidth & routing analysis.</span>
+              <span className="font-mono text-cyan-400 font-bold">{filteredServers.length} nodes</span>
             </div>
           </div>
         </>
@@ -204,10 +280,10 @@ export const ServerSelector: React.FC<ServerSelectorProps> = ({
 
       {/* Add Custom Node Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-fade-in">
           <div
             className={`w-full max-w-md rounded-2xl border p-6 shadow-2xl ${
-              theme === 'dark'
+              isDark
                 ? 'bg-slate-900 border-slate-800 text-slate-100'
                 : 'bg-white border-slate-200 text-slate-800'
             }`}
@@ -250,7 +326,7 @@ export const ServerSelector: React.FC<ServerSelectorProps> = ({
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Circle Network BDIX or Local ISP Node"
+                  placeholder="e.g., My ISP Local FTP Node"
                   value={formName}
                   onChange={(e) => setFormName(e.target.value)}
                   className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-slate-100 focus:outline-none focus:border-cyan-500"
@@ -259,11 +335,11 @@ export const ServerSelector: React.FC<ServerSelectorProps> = ({
 
               <div>
                 <label className="block text-slate-400 font-medium mb-1">
-                  Location / City
+                  Location (City / Region)
                 </label>
                 <input
                   type="text"
-                  placeholder="e.g. Dhaka, Chittagong, Sylhet, Rajshahi"
+                  placeholder="e.g., Dhaka, Gulshan-2"
                   value={formLocation}
                   onChange={(e) => setFormLocation(e.target.value)}
                   className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-slate-100 focus:outline-none focus:border-cyan-500"
@@ -272,57 +348,57 @@ export const ServerSelector: React.FC<ServerSelectorProps> = ({
 
               <div>
                 <label className="block text-slate-400 font-medium mb-1">
-                  Ping Probe URL (HEAD/GET with CORS) *
+                  Ping Endpoint URL (HTTPS) *
                 </label>
                 <input
                   type="url"
                   required
-                  placeholder="https://speed.your-isp.net/ping"
+                  placeholder="https://..."
                   value={formPingUrl}
                   onChange={(e) => setFormPingUrl(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-slate-100 focus:outline-none focus:border-cyan-500 font-mono text-[11px]"
+                  className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-slate-100 focus:outline-none focus:border-cyan-500"
                 />
               </div>
 
               <div>
                 <label className="block text-slate-400 font-medium mb-1">
-                  Download Chunk URL
+                  Download Chunk URL (Optional)
                 </label>
                 <input
                   type="url"
-                  placeholder="https://speed.your-isp.net/download?bytes={bytes}"
+                  placeholder="https://.../?bytes={bytes}"
                   value={formDownloadUrl}
                   onChange={(e) => setFormDownloadUrl(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-slate-100 focus:outline-none focus:border-cyan-500 font-mono text-[11px]"
+                  className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-slate-100 focus:outline-none focus:border-cyan-500"
                 />
               </div>
 
               <div>
                 <label className="block text-slate-400 font-medium mb-1">
-                  Upload Endpoint URL (POST with CORS)
+                  Upload Endpoint URL (Optional)
                 </label>
                 <input
                   type="url"
-                  placeholder="https://speed.your-isp.net/upload"
+                  placeholder="https://.../__up"
                   value={formUploadUrl}
                   onChange={(e) => setFormUploadUrl(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-slate-100 focus:outline-none focus:border-cyan-500 font-mono text-[11px]"
+                  className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-slate-100 focus:outline-none focus:border-cyan-500"
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-800/40">
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-800/50">
                 <button
                   type="button"
                   onClick={() => setShowAddModal(false)}
-                  className="px-4 py-2 rounded-lg text-slate-400 hover:text-white cursor-pointer"
+                  className="px-3 py-1.5 rounded-lg border border-slate-700 text-slate-300 hover:bg-slate-800"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded-lg font-bold text-white bg-cyan-600 hover:bg-cyan-500 transition-colors cursor-pointer"
+                  className="px-4 py-1.5 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold"
                 >
-                  Save Node
+                  Save Endpoint
                 </button>
               </div>
             </form>

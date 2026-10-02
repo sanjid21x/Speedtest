@@ -11,15 +11,21 @@ import {
   LatencyMetrics,
   StreamProgress,
   ThemeMode,
+  SpeedUnit,
+  TestDurationOption,
+  ClientNetworkDetails,
 } from './types/speedtest';
 import { SpeedEngine } from './services/speedEngine';
 import { getActiveServer } from './services/servers';
 import { getHistory, saveResultToHistory } from './services/history';
+import { fetchClientNetworkInfo } from './services/networkInfo';
 import { SpeedGauge } from './components/SpeedGauge';
 import { ResultCard } from './components/ResultCard';
 import { TestHistory } from './components/TestHistory';
 import { ServerSelector } from './components/ServerSelector';
 import { NetworkRouteSelector } from './components/NetworkRouteSelector';
+import { ClientNetworkCard } from './components/ClientNetworkCard';
+import { GamePingTester } from './components/GamePingTester';
 import { ThemeToggle } from './components/ThemeToggle';
 import { SplashScreen } from './components/SplashScreen';
 import {
@@ -33,8 +39,12 @@ import {
   ArrowDownCircle,
   ArrowUpCircle,
   Clock,
-  Info,
+  Gauge,
+  Gamepad2,
+  Globe,
+  Sparkles,
 } from 'lucide-react';
+import { formatSpeedValue, getUnitLabel } from './services/unitHelper';
 
 export default function App() {
   // Splash screen state (shows once on initial load)
@@ -80,6 +90,52 @@ export default function App() {
       window.removeEventListener('online', onOnline);
       window.removeEventListener('offline', onOffline);
     };
+  }, []);
+
+  // Speed Unit state: 'mbps' (Mbps) or 'MBps' (MB/s)
+  const [speedUnit, setSpeedUnit] = useState<SpeedUnit>(() => {
+    return (localStorage.getItem('speedtest_unit') as SpeedUnit) || 'mbps';
+  });
+
+  const toggleSpeedUnit = () => {
+    const nextUnit: SpeedUnit = speedUnit === 'mbps' ? 'MBps' : 'mbps';
+    setSpeedUnit(nextUnit);
+    localStorage.setItem('speedtest_unit', nextUnit);
+  };
+
+  // Test Duration state (seconds)
+  const [testDuration, setTestDuration] = useState<TestDurationOption>(() => {
+    const saved = localStorage.getItem('speedtest_duration');
+    return saved ? (Number(saved) as TestDurationOption) : 10;
+  });
+
+  const handleDurationChange = (dur: TestDurationOption) => {
+    setTestDuration(dur);
+    localStorage.setItem('speedtest_duration', String(dur));
+  };
+
+  // Client Network & IP state
+  const [clientNetwork, setClientNetwork] = useState<ClientNetworkDetails>({
+    ip: 'Detecting...',
+    ipVersion: 'IPv4',
+    isp: 'Detecting ISP...',
+    city: 'Detecting',
+    region: '',
+    country: 'Online',
+    countryCode: 'NET',
+    flag: '🌐',
+    isLoaded: false,
+    isLoading: true,
+  });
+
+  const loadNetworkDetails = async () => {
+    setClientNetwork((prev) => ({ ...prev, isLoading: true }));
+    const details = await fetchClientNetworkInfo();
+    setClientNetwork(details);
+  };
+
+  useEffect(() => {
+    loadNetworkDetails();
   }, []);
 
   // Server state
@@ -156,7 +212,7 @@ export default function App() {
     setUploadValue(0);
     setLatestResult(null);
 
-    engineRef.current?.start(activeServer);
+    engineRef.current?.start(activeServer, testDuration);
   };
 
   const handleStop = () => {
@@ -181,8 +237,8 @@ export default function App() {
     <div
       className={`min-h-screen flex flex-col font-sans transition-colors duration-300 ${
         activeTheme === 'dark'
-          ? 'bg-slate-950 text-slate-100'
-          : 'bg-slate-50 text-slate-900'
+          ? 'bg-slate-950 text-slate-100 selection:bg-cyan-500 selection:text-white'
+          : 'bg-slate-50 text-slate-900 selection:bg-cyan-500 selection:text-white'
       }`}
     >
       {/* Splash Screen on Initial Load */}
@@ -190,31 +246,31 @@ export default function App() {
 
       {/* Navigation Header */}
       <header
-        className={`sticky top-0 z-20 w-full border-b backdrop-blur-md transition-colors ${
+        className={`sticky top-0 z-30 w-full border-b backdrop-blur-xl transition-colors ${
           activeTheme === 'dark'
-            ? 'bg-slate-950/80 border-slate-800/80'
-            : 'bg-white/80 border-slate-200 shadow-xs'
+            ? 'bg-slate-950/85 border-slate-800/80 shadow-lg shadow-black/20'
+            : 'bg-white/90 border-slate-200/80 shadow-xs'
         }`}
       >
         <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between gap-3">
-          {/* Brand Logo & Name */}
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 shadow-sm">
-              <Activity className="h-5 w-5" />
+          {/* Brand Logo & Name: Speed Test by Sanjid */}
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-tr from-cyan-500 via-blue-600 to-purple-600 text-white shadow-md shadow-cyan-500/20 ring-1 ring-white/20">
+              <Activity className="h-5 w-5 animate-pulse" />
             </div>
-            <div className="flex flex-col">
-              <span className="font-extrabold text-lg tracking-tight bg-gradient-to-r from-white via-cyan-100 to-cyan-400 bg-clip-text text-transparent">
-                SpeedTest
-              </span>
-              <span className="text-[10px] font-medium text-slate-400 tracking-wide -mt-0.5">
-                Real Network Telemetry
+            <div className="flex items-center gap-2">
+              <h1 className="font-black text-base sm:text-lg tracking-tight bg-gradient-to-r from-white via-cyan-100 to-cyan-400 bg-clip-text text-transparent">
+                Speed Test by Sanjid
+              </h1>
+              <span className="text-[10px] font-extrabold px-1.5 py-0.2 rounded bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 uppercase tracking-widest hidden sm:inline">
+                PRO
               </span>
             </div>
           </div>
 
           {/* Right Header Actions */}
           <div className="flex items-center gap-2 sm:gap-3">
-            {/* Server Selector */}
+            {/* Global Server Selector */}
             <ServerSelector
               activeServer={activeServer}
               onServerChange={setActiveServer}
@@ -224,7 +280,7 @@ export default function App() {
 
             {/* Network Online Status Pill */}
             <div
-              className={`hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium border ${
+              className={`hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold border ${
                 isOnline
                   ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400'
                   : 'border-rose-500/30 bg-rose-500/10 text-rose-400'
@@ -232,7 +288,7 @@ export default function App() {
             >
               {isOnline ? (
                 <>
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  <span className="h-2 w-2 rounded-full bg-emerald-400 animate-ping" />
                   <span>Online</span>
                 </>
               ) : (
@@ -254,7 +310,7 @@ export default function App() {
       </header>
 
       {/* Main Content Area */}
-      <main className="flex-1 flex flex-col items-center justify-start px-4 py-8 max-w-4xl w-full mx-auto space-y-8">
+      <main className="flex-1 flex flex-col items-center justify-start px-4 py-4 sm:py-6 max-w-4xl w-full mx-auto space-y-5">
         {/* Error Notice */}
         {errorMessage && (
           <div
@@ -280,17 +336,37 @@ export default function App() {
           </div>
         )}
 
-        {/* Stage Step Indicator */}
+        {/* 1st: Speed Test Meter (Car Speedometer Instrument Cluster) */}
+        <div className="w-full flex flex-col items-center">
+          <SpeedGauge
+            stage={stage}
+            currentValue={currentLiveValue}
+            downloadValue={downloadValue}
+            uploadValue={uploadValue}
+            pingValue={pingValue}
+            jitterValue={jitterValue}
+            unit={speedUnit}
+            onToggleUnit={toggleSpeedUnit}
+            duration={testDuration}
+            onChangeDuration={handleDurationChange}
+            onStart={handleStart}
+            onStop={handleStop}
+            onRestart={handleRestart}
+            theme={activeTheme}
+          />
+        </div>
+
+        {/* Stage Step Indicator (Visible when testing) */}
         {isTesting && (
           <div className="w-full max-w-md flex flex-col items-center gap-2 animate-fade-in">
             <div className="flex items-center justify-between w-full text-[11px] font-semibold tracking-wider uppercase text-slate-400 px-2">
-              <span className={stage === 'testing_ping' || stage === 'testing_jitter' ? 'text-cyan-400 font-bold' : ''}>
+              <span className={stage === 'testing_ping' || stage === 'testing_jitter' ? 'text-red-400 font-bold' : ''}>
                 1. Latency
               </span>
               <span className={stage === 'testing_download' ? 'text-cyan-400 font-bold' : ''}>
                 2. Download
               </span>
-              <span className={stage === 'testing_upload' ? 'text-emerald-400 font-bold' : ''}>
+              <span className={stage === 'testing_upload' ? 'text-amber-400 font-bold' : ''}>
                 3. Upload
               </span>
               <span className={stage === 'calculating_results' ? 'text-purple-400 font-bold' : ''}>
@@ -300,7 +376,7 @@ export default function App() {
             {/* Visual Progress Bar */}
             <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
               <div
-                className="h-full bg-gradient-to-r from-cyan-500 via-blue-500 to-emerald-400 transition-all duration-300"
+                className="h-full bg-gradient-to-r from-cyan-500 via-amber-500 to-red-500 transition-all duration-300"
                 style={{
                   width:
                     stage === 'initializing' || stage === 'choosing_endpoint'
@@ -320,34 +396,10 @@ export default function App() {
           </div>
         )}
 
-        {/* Network Route Selector (Global CDN, GGC, FNA, IIG, Local BDIX) */}
-        <NetworkRouteSelector
-          activeServer={activeServer}
-          onServerSelect={setActiveServer}
-          disabled={isTesting}
-          theme={activeTheme}
-        />
-
-        {/* Central Speedometer Gauge */}
-        <div className="w-full flex flex-col items-center">
-          <SpeedGauge
-            stage={stage}
-            currentValue={currentLiveValue}
-            downloadValue={downloadValue}
-            uploadValue={uploadValue}
-            pingValue={pingValue}
-            jitterValue={jitterValue}
-            onStart={handleStart}
-            onStop={handleStop}
-            onRestart={handleRestart}
-            theme={activeTheme}
-          />
-        </div>
-
         {/* Live Metrics Quick Bar during active test */}
         {isTesting && (
           <div
-            className={`w-full max-w-xl grid grid-cols-4 gap-2 p-3 rounded-xl border text-center animate-fade-in ${
+            className={`w-full max-w-xl grid grid-cols-4 gap-2 p-3 rounded-2xl border text-center animate-fade-in ${
               activeTheme === 'dark'
                 ? 'bg-slate-900/60 border-slate-800 text-slate-200'
                 : 'bg-white border-slate-200 text-slate-700 shadow-sm'
@@ -362,35 +414,62 @@ export default function App() {
             <div>
               <span className="block text-[10px] uppercase font-semibold text-slate-400">Jitter</span>
               <span className="font-mono text-sm sm:text-base font-bold text-slate-100">
-                {jitterValue > 0 ? `${jitterValue} ms` : '--'}
+                {jitterValue > 0 ? `±${jitterValue} ms` : '--'}
               </span>
             </div>
             <div>
               <span className="block text-[10px] uppercase font-semibold text-cyan-400">Download</span>
               <span className="font-mono text-sm sm:text-base font-bold text-cyan-400">
-                {downloadValue > 0 ? `${downloadValue.toFixed(1)} M` : '--'}
+                {downloadValue > 0 ? `${formatSpeedValue(downloadValue, speedUnit, 1)} ${getUnitLabel(speedUnit)}` : '--'}
               </span>
             </div>
             <div>
-              <span className="block text-[10px] uppercase font-semibold text-emerald-400">Upload</span>
-              <span className="font-mono text-sm sm:text-base font-bold text-emerald-400">
-                {uploadValue > 0 ? `${uploadValue.toFixed(1)} M` : '--'}
+              <span className="block text-[10px] uppercase font-semibold text-red-400">Upload</span>
+              <span className="font-mono text-sm sm:text-base font-bold text-red-400">
+                {uploadValue > 0 ? `${formatSpeedValue(uploadValue, speedUnit, 1)} ${getUnitLabel(speedUnit)}` : '--'}
               </span>
             </div>
           </div>
         )}
 
+        {/* 2nd: Test Server Selection (BDIX, GGC, FNA, IIG, Global CDN) */}
+        <div className="w-full flex justify-center">
+          <NetworkRouteSelector
+            activeServer={activeServer}
+            onServerSelect={setActiveServer}
+            disabled={isTesting}
+            theme={activeTheme}
+          />
+        </div>
+
+        {/* 3rd: Network Identity Box (ISP Name, Public IP, IPv4/IPv6, Location) */}
+        <div className="w-full max-w-2xl">
+          <ClientNetworkCard
+            networkInfo={clientNetwork}
+            onRefresh={loadNetworkDetails}
+            theme={activeTheme}
+          />
+        </div>
+
+
+
         {/* Completed Result Card */}
         {stage === 'completed' && latestResult && (
           <div className="w-full flex justify-center animate-fade-in">
-            <ResultCard result={latestResult} theme={activeTheme} />
+            <ResultCard result={latestResult} unit={speedUnit} theme={activeTheme} />
           </div>
         )}
+
+        {/* Dedicated Game Ping Tester Section (PUBG, eFootball, Valorant, CoD, Free Fire, Valve) */}
+        <div className="w-full max-w-2xl">
+          <GamePingTester theme={activeTheme} />
+        </div>
 
         {/* Test History */}
         <div className="w-full flex justify-center">
           <TestHistory
             history={historyList}
+            unit={speedUnit}
             onHistoryCleared={() => setHistoryList([])}
             theme={activeTheme}
           />
@@ -407,33 +486,33 @@ export default function App() {
           <div className="flex items-center gap-2 mb-3 text-cyan-400">
             <ShieldCheck className="w-5 h-5" />
             <h4 className="font-bold text-sm tracking-wide uppercase">
-              How This Real Speed Test Works
+              Speed Test by Sanjid • Multi-Path Architecture
             </h4>
           </div>
           <div className="text-xs space-y-2 leading-relaxed text-slate-400">
             <p>
-              • <strong className="text-cyan-300">Global CDN:</strong> Tests worldwide Anycast points-of-presence (Cloudflare, Fastly) for global browsing and web apps.
+              • <strong className="text-cyan-300">Global Anycast CDN:</strong> Tests worldwide Anycast points-of-presence (Cloudflare, Fastly) for global web browsing and streaming.
             </p>
             <p>
-              • <strong className="text-rose-300">Google Global Cache (GGC):</strong> Tests local ISP caching appliances for YouTube, Google Drive, Play Store, and Google Workspace streaming.
+              • <strong className="text-emerald-300">Local BDIX (Bangladesh):</strong> Measures direct domestic peering latency and bandwidth across Dhaka & Chittagong IXP cores, AmberIT, Carnival, and Link3 without submarine cable hops.
             </p>
             <p>
-              • <strong className="text-blue-300">Facebook Network Appliance (FNA):</strong> Tests intra-ISP Meta peering caches for Instagram Reels, Facebook HD video, and media delivery.
+              • <strong className="text-rose-300">Google Global Cache (GGC):</strong> Tests local ISP caching appliances for YouTube 4K, Google Play, and Google Workspace.
             </p>
             <p>
-              • <strong className="text-emerald-300">Local BDIX:</strong> Measures direct domestic peering latency and bandwidth across the Bangladesh Internet Exchange (local ISP FTPs, live TV, OTT, and intra-country networks).
+              • <strong className="text-blue-300">Facebook Network Appliance (FNA):</strong> Tests intra-ISP Meta peering caches for Instagram Reels, Facebook HD video, and WhatsApp media.
             </p>
             <p>
-              • <strong className="text-amber-300">International Gateway (IIG):</strong> Benchmarks upstream international submarine cable transit (SMW-4, SMW-5) and cross-border ITC links.
+              • <strong className="text-amber-300">International Gateway (IIG):</strong> Benchmarks international upstream submarine cable transit (SMW-4, SMW-5) and cross-border ITC links.
             </p>
             <p>
-              • <strong className="text-slate-200">Multi-Route Audit:</strong> Use the "Compare All 5 Routes" button above to probe latency and jitter across all peering paths simultaneously!
+              • <strong className="text-purple-300">Esports Game Radar:</strong> Live multi-region TCP-syn ping & jitter telemetry for PUBG Mobile, eFootball, Valorant, Call of Duty, Free Fire, and Valve servers.
             </p>
           </div>
         </section>
       </main>
 
-      {/* Website Footer with required Branding */}
+      {/* Website Footer with Branding */}
       <footer
         className={`w-full border-t py-6 px-4 transition-colors ${
           activeTheme === 'dark'
@@ -444,15 +523,17 @@ export default function App() {
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-xs">
           <div className="flex items-center gap-2">
             <Activity className="w-4 h-4 text-cyan-400" />
-            <span className="font-bold tracking-tight text-slate-200">SpeedTest</span>
+            <span className="font-bold tracking-tight text-slate-200">Speed Test by Sanjid</span>
             <span className="text-slate-600">|</span>
-            <span>Made with <span className="text-rose-500 select-none">♥</span> by Sanjid</span>
+            <span>Created by Sanjid</span>
           </div>
 
           <div className="flex items-center gap-4 text-slate-400">
-            <span>Static GitHub Pages Ready</span>
+            <span>Dynamic Duration Control</span>
             <span>•</span>
-            <span>CORS Edge Telemetry</span>
+            <span>Mbps / MBps Switcher</span>
+            <span>•</span>
+            <span>Game Ping Radar</span>
           </div>
         </div>
       </footer>

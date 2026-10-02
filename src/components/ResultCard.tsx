@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { SpeedTestResult } from '../types/speedtest';
+import { SpeedTestResult, SpeedUnit } from '../types/speedtest';
+import { formatSpeedValue, getUnitLabel } from '../services/unitHelper';
 import {
   ArrowDownCircle,
   ArrowUpCircle,
@@ -8,7 +9,6 @@ import {
   Server,
   Share2,
   Check,
-  Copy,
   Info,
   Laptop,
   Wifi,
@@ -16,10 +16,11 @@ import {
 
 interface ResultCardProps {
   result: SpeedTestResult;
+  unit: SpeedUnit;
   theme: 'dark' | 'light';
 }
 
-export const ResultCard: React.FC<ResultCardProps> = ({ result, theme }) => {
+export const ResultCard: React.FC<ResultCardProps> = ({ result, unit, theme }) => {
   const [copied, setCopied] = useState(false);
   const [shareSuccess, setShareSuccess] = useState(false);
 
@@ -28,12 +29,16 @@ export const ResultCard: React.FC<ResultCardProps> = ({ result, theme }) => {
     timeStyle: 'short',
   });
 
+  const downloadDisplay = formatSpeedValue(result.downloadMbps, unit, 2);
+  const uploadDisplay = formatSpeedValue(result.uploadMbps, unit, 2);
+  const unitLabel = getUnitLabel(unit);
+
   const getShareText = () => {
     const routeCategory = result.server.categoryLabel ? `Route: ${result.server.categoryLabel}\n` : '';
-    return `Speed Test Result
+    return `Speed Test by Sanjid Result
 
-Download: ${result.downloadMbps} Mbps
-Upload: ${result.uploadMbps} Mbps
+Download: ${result.downloadMbps} Mbps (${(result.downloadMbps / 8).toFixed(2)} MB/s)
+Upload: ${result.uploadMbps} Mbps (${(result.uploadMbps / 8).toFixed(2)} MB/s)
 Ping: ${result.pingMs} ms
 Jitter: ${result.jitterMs} ms
 ${routeCategory}Server: ${result.server.name} (${result.server.location})
@@ -46,7 +51,7 @@ Tested on: ${formattedDate}`;
     if (navigator.share) {
       try {
         await navigator.share({
-          title: 'Speed Test Result',
+          title: 'Speed Test by Sanjid Result',
           text,
         });
         setShareSuccess(true);
@@ -63,7 +68,6 @@ Tested on: ${formattedDate}`;
       setCopied(true);
       setTimeout(() => setCopied(false), 2500);
     } catch {
-      // Fallback manual prompt
       window.prompt('Copy your result:', text);
     }
   };
@@ -80,7 +84,7 @@ Tested on: ${formattedDate}`;
       <div className="flex flex-wrap items-center justify-between gap-3 border-b pb-4 border-slate-800/40">
         <div>
           <span className="text-xs font-semibold uppercase tracking-wider text-cyan-400">
-            Official Measurement
+            Speed Test by Sanjid • Verified Benchmark
           </span>
           <h2 className="text-xl sm:text-2xl font-bold tracking-tight">
             Connection Summary
@@ -119,9 +123,14 @@ Tested on: ${formattedDate}`;
             <span>DOWNLOAD</span>
           </div>
           <div className="text-2xl sm:text-3xl font-extrabold font-mono text-cyan-400">
-            {result.downloadMbps}
+            {downloadDisplay}
           </div>
-          <span className="text-[11px] text-slate-400 font-medium">Mbps</span>
+          <div className="flex items-center justify-between text-[11px] text-slate-400 font-medium mt-0.5">
+            <span>{unitLabel}</span>
+            <span className="text-[10px] text-slate-500">
+              {unit === 'mbps' ? `${(result.downloadMbps / 8).toFixed(1)} MB/s` : `${result.downloadMbps} Mbps`}
+            </span>
+          </div>
         </div>
 
         {/* Upload */}
@@ -135,9 +144,14 @@ Tested on: ${formattedDate}`;
             <span>UPLOAD</span>
           </div>
           <div className="text-2xl sm:text-3xl font-extrabold font-mono text-emerald-400">
-            {result.uploadMbps}
+            {uploadDisplay}
           </div>
-          <span className="text-[11px] text-slate-400 font-medium">Mbps</span>
+          <div className="flex items-center justify-between text-[11px] text-slate-400 font-medium mt-0.5">
+            <span>{unitLabel}</span>
+            <span className="text-[10px] text-slate-500">
+              {unit === 'mbps' ? `${(result.uploadMbps / 8).toFixed(1)} MB/s` : `${result.uploadMbps} Mbps`}
+            </span>
+          </div>
         </div>
 
         {/* Ping */}
@@ -199,42 +213,29 @@ Tested on: ${formattedDate}`;
             <span className="font-semibold text-slate-400">Timestamp:</span>
             <span>{formattedDate}</span>
           </div>
-          <span className="text-slate-400 text-[11px]">Duration: {result.durationSeconds}s</span>
+          <span className="text-slate-500 text-[11px]">
+            Duration: {Math.round(result.durationSeconds)}s
+          </span>
         </div>
 
-        {result.deviceInfo && (
-          <div className="flex items-center gap-1.5 border-b border-slate-800/40 pb-2">
-            <Laptop className="w-3.5 h-3.5 text-slate-400" />
-            <span className="font-semibold text-slate-400">Client Environment:</span>
-            <span>
-              {result.deviceInfo.browser} on {result.deviceInfo.os}
+        {/* Network and browser meta */}
+        <div className="flex flex-wrap items-center justify-between gap-2 pt-1 text-[11px] text-slate-400">
+          <div className="flex items-center gap-1">
+            <Wifi className="w-3.5 h-3.5 text-cyan-400" />
+            <span>Connection:</span>
+            <span className="font-mono text-slate-200">
+              {result.networkInfo?.effectiveType?.toUpperCase() || 'BROADBAND'}
             </span>
           </div>
-        )}
-
-        {/* Browser Network Information API (Strictly labeled as estimate) */}
-        {result.networkInfo && (
-          <div className="pt-1 flex flex-col gap-1">
-            <div className="flex items-center gap-1.5 text-amber-400/90 font-medium">
-              <Wifi className="w-3.5 h-3.5" />
-              <span>Browser Network API (Theoretical Estimate):</span>
+          {result.deviceInfo && (
+            <div className="flex items-center gap-1">
+              <Laptop className="w-3.5 h-3.5 text-slate-400" />
+              <span>
+                {result.deviceInfo.browser} ({result.deviceInfo.os})
+              </span>
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pl-5 text-[11px] text-slate-400">
-              {result.networkInfo.effectiveType && (
-                <div>Type: <span className="text-slate-200 font-mono uppercase">{result.networkInfo.effectiveType}</span></div>
-              )}
-              {result.networkInfo.downlink !== undefined && (
-                <div>Est. Downlink: <span className="text-slate-200 font-mono">{result.networkInfo.downlink} Mbps</span></div>
-              )}
-              {result.networkInfo.rtt !== undefined && (
-                <div>Est. RTT: <span className="text-slate-200 font-mono">{result.networkInfo.rtt} ms</span></div>
-              )}
-            </div>
-            <p className="pl-5 text-[10px] text-slate-500 italic">
-              Note: Browser estimates above are provided by navigator.connection and are separate from our actual speed test measurement.
-            </p>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );

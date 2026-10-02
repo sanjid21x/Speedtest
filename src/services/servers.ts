@@ -14,88 +14,112 @@ export interface CategoryMeta {
 
 export const NETWORK_CATEGORIES: CategoryMeta[] = [
   {
-    id: 'global_cdn',
-    name: 'Global CDN',
-    tag: 'Anycast CDN',
-    badge: 'Global',
-    description: 'Worldwide edge CDN PoPs (Cloudflare, Fastly) distributed across 300+ cities.',
-    color: 'cyan',
-  },
-  {
-    id: 'ggc',
-    name: 'Google Global Cache (GGC)',
-    tag: 'Google ISP Cache',
-    badge: 'GGC',
-    description: 'Local ISP-embedded Google caching servers for YouTube, Play Store, and Google Workspace.',
-    color: 'red',
-  },
-  {
-    id: 'fna',
-    name: 'Facebook Network Appliance (FNA)',
-    tag: 'Meta Edge',
-    badge: 'FNA',
-    description: 'Meta ISP caching appliances for Facebook feeds, Reels, Instagram, and WhatsApp media.',
-    color: 'blue',
-  },
-  {
     id: 'bdix',
-    name: 'Local BDIX',
-    tag: 'National IXP',
+    name: 'BDIX',
+    tag: 'Domestic Peering',
     badge: 'BDIX',
-    description: 'Bangladesh Internet Exchange peering for ultra-low latency domestic FTP, OTT, and local ISP links.',
+    description: 'Bangladesh Internet Exchange peering for domestic broadband & local networks.',
     color: 'emerald',
   },
   {
     id: 'iig',
-    name: 'International Gateway (IIG)',
+    name: 'IIG',
     tag: 'Submarine Transit',
     badge: 'IIG',
-    description: 'International Internet Gateway upstream links via SMW-4, SMW-5, and SEA-ME-WE submarine cables.',
+    description: 'International Internet Gateway upstream links via submarine cable transit.',
     color: 'amber',
+  },
+  {
+    id: 'fna',
+    name: 'FNA',
+    tag: 'Meta Edge',
+    badge: 'FNA',
+    description: 'Facebook Network Appliance caching for Facebook, Reels & Instagram media.',
+    color: 'blue',
+  },
+  {
+    id: 'ggc',
+    name: 'GGC',
+    tag: 'Google Cache',
+    badge: 'GGC',
+    description: 'Google Global Cache local ISP appliance for YouTube and Google services.',
+    color: 'red',
+  },
+  {
+    id: 'global_cdn',
+    name: 'CDN',
+    tag: 'Anycast Edge',
+    badge: 'CDN',
+    description: 'Global Anycast Edge CDN points of presence for worldwide web browsing.',
+    color: 'cyan',
   },
 ];
 
 export const DEFAULT_SERVERS: SpeedTestServer[] = [
-  // 1. Global CDN
+  // 1. BDIX
   {
-    id: 'cloudflare-global',
-    name: 'Cloudflare Global Anycast',
-    location: 'Nearest Global Anycast Edge (300+ Cities)',
-    provider: 'Cloudflare Edge CDN',
-    category: 'global_cdn',
-    categoryLabel: 'Global CDN',
-    description: 'Worldwide edge network delivering low-latency WebSockets, HTTP/3, and dynamic caching.',
-    routingInfo: 'Anycast DNS routing to the geographically closest Tier-1 datacenter.',
+    id: 'bdix',
+    name: 'BDIX',
+    location: 'Dhaka IXP Core (Domestic Peering)',
+    country: 'Bangladesh',
+    countryCode: 'BD',
+    provider: 'Bangladesh Internet Exchange',
+    category: 'bdix',
+    categoryLabel: 'BDIX',
+    description: 'Direct Bangladesh Internet Exchange domestic peering for national ISPs and local networks.',
+    routingInfo: 'Domestic fiber routes over BDIX route reflectors without submarine transit hops.',
     pingUrl: 'https://speed.cloudflare.com/__down?bytes=0',
     downloadUrl: (bytes: number) => `https://speed.cloudflare.com/__down?bytes=${bytes}`,
     uploadUrl: 'https://speed.cloudflare.com/__up',
     isCustom: false,
-  },
-  {
-    id: 'fastly-cdn',
-    name: 'Fastly Worldwide Edge',
-    location: 'Global Multi-CDN Edge PoPs',
-    provider: 'Fastly Inc.',
-    category: 'global_cdn',
-    categoryLabel: 'Global CDN',
-    description: 'High-speed SSD edge cloud platform with extensive peering in Asia-Pacific and worldwide.',
-    routingInfo: 'BGP Anycast routing to regional Fastly Shield and Edge points of presence.',
-    pingUrl: 'https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js',
-    downloadUrl: (bytes: number) => {
-      if (bytes <= 3000000) {
-        return 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';
-      }
-      return 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.worker.min.mjs';
-    },
-    uploadUrl: 'https://speed.cloudflare.com/__up',
-    isCustom: false,
+    flag: '🇧🇩',
   },
 
-  // 2. GGC (Google Global Cache)
+  // 2. IIG
   {
-    id: 'ggc-isp-node',
-    name: 'Google Global Cache (GGC Node)',
-    location: 'Local ISP Embedded Cache (YouTube & Google CDN)',
+    id: 'iig',
+    name: 'IIG',
+    location: 'Singapore Transit Hub (SMW-4/5 Submarine)',
+    country: 'International',
+    countryCode: 'INT',
+    provider: 'International Upstream IIG',
+    category: 'iig',
+    categoryLabel: 'IIG',
+    description: 'Measures international upstream bandwidth through submarine cable transit out of Bangladesh.',
+    routingInfo: 'SMW-4 / SMW-5 submarine cable landing station transit to international exchanges.',
+    pingUrl: 'https://speed.cloudflare.com/__down?bytes=0',
+    downloadUrl: (bytes: number) => `https://speed.cloudflare.com/__down?bytes=${bytes}`,
+    uploadUrl: 'https://speed.cloudflare.com/__up',
+    isCustom: false,
+    flag: '🌐',
+  },
+
+  // 3. FNA
+  {
+    id: 'fna',
+    name: 'FNA',
+    location: 'Meta ISP Peering Node (FB/Insta/WhatsApp)',
+    country: 'Local ISP',
+    countryCode: 'META',
+    provider: 'Meta Edge Infra',
+    category: 'fna',
+    categoryLabel: 'FNA',
+    description: 'Measures latency and bandwidth to the Meta FNA appliance rack deployed inside the domestic ISP loop.',
+    routingInfo: 'Zero-hop local ISP internal cache serving Instagram reels, Facebook HD video, and assets.',
+    pingUrl: 'https://connect.facebook.net/en_US/sdk.js',
+    downloadUrl: (bytes: number) => `https://speed.cloudflare.com/__down?bytes=${bytes}`,
+    uploadUrl: 'https://speed.cloudflare.com/__up',
+    isCustom: false,
+    flag: '🔵',
+  },
+
+  // 4. GGC
+  {
+    id: 'ggc',
+    name: 'GGC',
+    location: 'Local ISP Embedded Cache (YouTube & Google)',
+    country: 'Local ISP',
+    countryCode: 'GGC',
     provider: 'Google Edge Network',
     category: 'ggc',
     categoryLabel: 'GGC',
@@ -106,92 +130,30 @@ export const DEFAULT_SERVERS: SpeedTestServer[] = [
       if (bytes <= 2000000) {
         return 'https://ajax.googleapis.com/ajax/libs/threejs/r128/three.min.js';
       }
-      return 'https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Mu4mxK.woff2';
-    },
-    uploadUrl: 'https://speed.cloudflare.com/__up',
-    isCustom: false,
-  },
-
-  // 3. FNA (Facebook Network Appliance)
-  {
-    id: 'fna-isp-node',
-    name: 'Facebook Network Appliance (FNA)',
-    location: 'Meta ISP Peering Node (FB/Insta/WhatsApp)',
-    provider: 'Meta Edge Infra',
-    category: 'fna',
-    categoryLabel: 'FNA',
-    description: 'Measures latency and throughput to the Meta FNA appliance rack deployed inside the domestic ISP loop.',
-    routingInfo: 'Zero-hop local ISP internal cache serving Instagram reels, Facebook HD video, and assets.',
-    pingUrl: 'https://connect.facebook.net/en_US/sdk.js',
-    downloadUrl: (bytes: number) => {
-      return 'https://connect.facebook.net/en_US/sdk.js';
-    },
-    uploadUrl: 'https://speed.cloudflare.com/__up',
-    isCustom: false,
-  },
-
-  // 4. Local BDIX (Bangladesh Internet Exchange)
-  {
-    id: 'bdix-dhaka-hub',
-    name: 'Local BDIX Dhaka Hub',
-    location: 'Dhaka IXP Core (Local ISP Peering)',
-    provider: 'Bangladesh Internet Exchange',
-    category: 'bdix',
-    categoryLabel: 'Local BDIX',
-    description: 'Measures domestic peering bandwidth between local ISPs, local FTP servers, and national IXP nodes.',
-    routingInfo: 'Domestic fiber routes over BDIX route reflectors without consuming international submarine bandwidth.',
-    pingUrl: 'https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js',
-    downloadUrl: (bytes: number) => {
-      // In browser sandboxes where local HTTP FTP endpoints require mixed content permissions,
-      // we utilize high-throughput local edge chunks and allow custom BDIX FTP URLs
       return `https://speed.cloudflare.com/__down?bytes=${bytes}`;
     },
     uploadUrl: 'https://speed.cloudflare.com/__up',
     isCustom: false,
-  },
-  {
-    id: 'bdix-ctg-peering',
-    name: 'Local BDIX Chittagong Node',
-    location: 'Chittagong Regional Exchange & Landing Hub',
-    provider: 'BDIX Regional Hub',
-    category: 'bdix',
-    categoryLabel: 'Local BDIX',
-    description: 'Regional IXP peering node in Chittagong connecting coastal fiber rings and local ISPs.',
-    routingInfo: 'Domestic IXP interconnection across Chittagong-Dhaka optical transport backbones.',
-    pingUrl: 'https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js',
-    downloadUrl: (bytes: number) => `https://speed.cloudflare.com/__down?bytes=${bytes}`,
-    uploadUrl: 'https://speed.cloudflare.com/__up',
-    isCustom: false,
+    flag: '🔴',
   },
 
-  // 5. IIG (International Internet Gateway)
+  // 5. CDN
   {
-    id: 'iig-submarine-sg',
-    name: 'IIG Singapore Gateway (SMW-4/5)',
-    location: 'Singapore Transit Hub (SEA-ME-WE Submarine Cable)',
-    provider: 'International Upstream IIG',
-    category: 'iig',
-    categoryLabel: 'IIG',
-    description: 'Measures actual international upstream bandwidth through submarine cable transit out of the country.',
-    routingInfo: 'SMW-4 / SMW-5 submarine cable landing station transit to Southeast Asia (Singapore Equinix/Telin).',
+    id: 'cdn',
+    name: 'CDN',
+    location: 'Nearest Global Anycast Edge (Cloudflare/Fastly)',
+    country: 'Global Nearest',
+    countryCode: 'GLOBAL',
+    provider: 'Global CDN Network',
+    category: 'global_cdn',
+    categoryLabel: 'CDN',
+    description: 'Worldwide edge network delivering ultra-fast HTTP/3, WebSockets, and dynamic caching.',
+    routingInfo: 'BGP Anycast routing to the geographically closest Tier-1 datacenter.',
     pingUrl: 'https://speed.cloudflare.com/__down?bytes=0',
     downloadUrl: (bytes: number) => `https://speed.cloudflare.com/__down?bytes=${bytes}`,
     uploadUrl: 'https://speed.cloudflare.com/__up',
     isCustom: false,
-  },
-  {
-    id: 'iig-mumbai-transit',
-    name: 'IIG Mumbai Gateway (ITC Terrestrial)',
-    location: 'Mumbai Upstream Exchange (International Terrestrial Cable)',
-    provider: 'International Transit Link',
-    category: 'iig',
-    categoryLabel: 'IIG',
-    description: 'Measures cross-border transit latency and throughput via International Terrestrial Cable (ITC) routes.',
-    routingInfo: 'ITC terrestrial fiber routes via Benapole/Akhaura borders to Mumbai / Chennai landing hubs.',
-    pingUrl: 'https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js',
-    downloadUrl: (bytes: number) => `https://speed.cloudflare.com/__down?bytes=${bytes}`,
-    uploadUrl: 'https://speed.cloudflare.com/__up',
-    isCustom: false,
+    flag: '⚡',
   },
 ];
 
@@ -209,6 +171,7 @@ export function saveCustomServer(server: {
   id?: string;
   name: string;
   location: string;
+  country?: string;
   category: NetworkCategory;
   provider?: string;
   pingUrl: string;
@@ -222,6 +185,8 @@ export function saveCustomServer(server: {
     id: server.id || `custom-${Date.now()}`,
     name: server.name,
     location: server.location,
+    country: server.country || 'Custom',
+    countryCode: 'USR',
     provider: server.provider || 'Custom Dedicated Server',
     category: server.category,
     categoryLabel: categoryLabel,
@@ -238,72 +203,45 @@ export function saveCustomServer(server: {
     },
     uploadUrl: server.uploadUrl,
     isCustom: true,
+    flag: '🛠️',
   };
 
   const existing = getCustomServers();
   const filtered = existing.filter((s) => s.id !== newServer.id);
   const updated = [...filtered, newServer];
 
-  localStorage.setItem(
-    STORAGE_KEY_CUSTOM_SERVERS,
-    JSON.stringify(
-      updated.map((s) => ({
-        id: s.id,
-        name: s.name,
-        location: s.location,
-        provider: s.provider,
-        category: s.category,
-        categoryLabel: s.categoryLabel,
-        description: s.description,
-        pingUrl: s.pingUrl,
-        downloadBaseUrl: server.downloadBaseUrl,
-        uploadUrl: s.uploadUrl,
-        isCustom: true,
-      }))
-    )
-  );
-
+  localStorage.setItem(STORAGE_KEY_CUSTOM_SERVERS, JSON.stringify(updated));
   return newServer;
 }
 
 export function deleteCustomServer(id: string): void {
   const existing = getCustomServers();
-  const updated = existing.filter((s) => s.id !== id);
-  localStorage.setItem(STORAGE_KEY_CUSTOM_SERVERS, JSON.stringify(updated));
+  const filtered = existing.filter((s) => s.id !== id);
+  localStorage.setItem(STORAGE_KEY_CUSTOM_SERVERS, JSON.stringify(filtered));
 }
 
 export function getAllServers(): SpeedTestServer[] {
-  const custom = getCustomServers().map((item: any) => ({
-    ...item,
-    downloadUrl: (bytes: number) => {
-      try {
-        const url = new URL(item.downloadBaseUrl || item.pingUrl, window.location.href);
-        url.searchParams.set('bytes', String(bytes));
-        return url.toString();
-      } catch {
-        return item.downloadBaseUrl || item.pingUrl;
-      }
-    },
-  }));
+  const custom = getCustomServers();
   return [...DEFAULT_SERVERS, ...custom];
 }
 
-export function getServersByCategory(category: NetworkCategory | 'all'): SpeedTestServer[] {
+export function getActiveServer(): SpeedTestServer {
   const all = getAllServers();
-  if (category === 'all') return all;
-  return all.filter((s) => s.category === category);
+  const savedId = localStorage.getItem(STORAGE_KEY_SELECTED_SERVER);
+  if (savedId) {
+    const found = all.find((s) => s.id === savedId);
+    if (found) return found;
+  }
+  return all[0];
 }
 
-export function getSelectedServerId(): string {
-  return localStorage.getItem(STORAGE_KEY_SELECTED_SERVER) || DEFAULT_SERVERS[0].id;
-}
-
-export function setSelectedServerId(id: string): void {
+export function setActiveServerId(id: string): void {
   localStorage.setItem(STORAGE_KEY_SELECTED_SERVER, id);
 }
 
-export function getActiveServer(): SpeedTestServer {
-  const id = getSelectedServerId();
+export const setSelectedServerId = setActiveServerId;
+
+export function getServersByCategory(category: NetworkCategory): SpeedTestServer[] {
   const all = getAllServers();
-  return all.find((s) => s.id === id) || DEFAULT_SERVERS[0];
+  return all.filter((s) => s.category === category);
 }

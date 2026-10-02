@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { SpeedTestResult } from '../types/speedtest';
+import { SpeedTestResult, SpeedUnit } from '../types/speedtest';
 import { clearHistory, exportHistoryAsCSV } from '../services/history';
+import { formatSpeedValue, getUnitLabel } from '../services/unitHelper';
 import {
   History,
   Trash2,
@@ -16,12 +17,14 @@ import {
 
 interface TestHistoryProps {
   history: SpeedTestResult[];
+  unit: SpeedUnit;
   onHistoryCleared: () => void;
   theme: 'dark' | 'light';
 }
 
 export const TestHistory: React.FC<TestHistoryProps> = ({
   history,
+  unit,
   onHistoryCleared,
   theme,
 }) => {
@@ -39,6 +42,7 @@ export const TestHistory: React.FC<TestHistoryProps> = ({
   }
 
   const displayedHistory = expanded ? history : history.slice(0, 5);
+  const unitLabel = getUnitLabel(unit);
 
   return (
     <div
@@ -129,7 +133,7 @@ export const TestHistory: React.FC<TestHistoryProps> = ({
                     {item.server.name}
                   </span>
                   {item.server.categoryLabel && (
-                    <span className="text-[9px] px-1.5 py-0.2 rounded font-mono font-medium bg-slate-800 text-cyan-300 border border-slate-700">
+                    <span className="text-[9px] px-1.5 py-0.5 rounded font-mono font-medium bg-slate-800 text-cyan-300 border border-slate-700">
                       {item.server.categoryLabel}
                     </span>
                   )}
@@ -141,18 +145,18 @@ export const TestHistory: React.FC<TestHistoryProps> = ({
                 <div className="flex items-center gap-1">
                   <ArrowDownCircle className="w-3.5 h-3.5 text-cyan-400" />
                   <span className="text-cyan-400 font-bold text-sm">
-                    {item.downloadMbps}
+                    {formatSpeedValue(item.downloadMbps, unit, 1)}
                   </span>
-                  <span className="text-[10px] text-slate-500">Mbps</span>
+                  <span className="text-[10px] text-slate-500">{unitLabel}</span>
                 </div>
 
                 {/* Upload */}
                 <div className="flex items-center gap-1">
                   <ArrowUpCircle className="w-3.5 h-3.5 text-emerald-400" />
                   <span className="text-emerald-400 font-bold text-sm">
-                    {item.uploadMbps}
+                    {formatSpeedValue(item.uploadMbps, unit, 1)}
                   </span>
-                  <span className="text-[10px] text-slate-500">Mbps</span>
+                  <span className="text-[10px] text-slate-500">{unitLabel}</span>
                 </div>
 
                 {/* Ping */}

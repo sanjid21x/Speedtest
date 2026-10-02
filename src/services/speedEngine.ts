@@ -42,7 +42,7 @@ export class SpeedEngine {
     this.callbacks.onStageChange('idle');
   }
 
-  public async start(server: SpeedTestServer): Promise<void> {
+  public async start(server: SpeedTestServer, testDurationSeconds: number = 10): Promise<void> {
     if (this.isRunning) {
       this.abort();
     }
@@ -58,15 +58,18 @@ export class SpeedEngine {
     const signal = this.abortController.signal;
     const testStartTime = performance.now();
 
+    const downloadDurationMs = Math.max(3000, Math.round(testDurationSeconds * 580));
+    const uploadDurationMs = Math.max(2500, Math.round(testDurationSeconds * 420));
+
     try {
       // Stage 1: Initializing
       this.callbacks.onStageChange('initializing');
-      await this.sleep(350);
+      await this.sleep(300);
       if (!this.isRunning) return;
 
       // Stage 2: Choosing / Verifying Endpoint
       this.callbacks.onStageChange('choosing_endpoint');
-      await this.sleep(300);
+      await this.sleep(250);
       if (!this.isRunning) return;
 
       // Stage 3 & 4: Latency & Jitter Measurement
@@ -76,12 +79,12 @@ export class SpeedEngine {
 
       // Stage 5: Download Speed Test
       this.callbacks.onStageChange('testing_download');
-      const downloadMbps = await this.measureDownloadSpeed(server, signal);
+      const downloadMbps = await this.measureDownloadSpeed(server, signal, downloadDurationMs);
       if (!this.isRunning) return;
 
       // Stage 6: Upload Speed Test
       this.callbacks.onStageChange('testing_upload');
-      const uploadMbps = await this.measureUploadSpeed(server, signal, downloadMbps);
+      const uploadMbps = await this.measureUploadSpeed(server, signal, downloadMbps, uploadDurationMs);
       if (!this.isRunning) return;
 
       // Stage 7: Calculating Results
@@ -241,8 +244,12 @@ export class SpeedEngine {
    * Uses real streaming fetch requests with ReadableStream chunk-level byte counting.
    * Features dynamic chunk sizing and concurrent connections for high-speed fiber lines.
    */
-  private async measureDownloadSpeed(server: SpeedTestServer, signal: AbortSignal): Promise<number> {
-    const TEST_DURATION_MS = 8000; // 8 seconds measurement window
+  private async measureDownloadSpeed(
+    server: SpeedTestServer,
+    signal: AbortSignal,
+    durationMs: number = 8000
+  ): Promise<number> {
+    const TEST_DURATION_MS = durationMs;
     const startTime = performance.now();
     let totalBytesLoaded = 0;
 
@@ -346,9 +353,10 @@ export class SpeedEngine {
   private async measureUploadSpeed(
     server: SpeedTestServer,
     signal: AbortSignal,
-    estimatedDownloadMbps: number
+    estimatedDownloadMbps: number,
+    durationMs: number = 6000
   ): Promise<number> {
-    const TEST_DURATION_MS = 6000; // 6 seconds
+    const TEST_DURATION_MS = durationMs;
     const startTime = performance.now();
     let totalBytesUploaded = 0;
 
