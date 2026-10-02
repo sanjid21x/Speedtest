@@ -193,19 +193,22 @@ export const ServerSelector: React.FC<ServerSelectorProps> = ({
               >
                 All ({servers.length})
               </button>
-              {NETWORK_CATEGORIES.map((cat) => (
-                <button
-                  key={cat.id}
-                  onClick={() => setSelectedCategory(cat.id)}
-                  className={`px-2 py-0.5 rounded-lg font-medium whitespace-nowrap transition-all ${
-                    selectedCategory === cat.id
-                      ? 'bg-cyan-500 text-slate-950 font-bold'
-                      : 'bg-slate-800/60 text-slate-400 hover:text-slate-200'
-                  }`}
-                >
-                  {cat.badge}
-                </button>
-              ))}
+              {NETWORK_CATEGORIES.map((cat) => {
+                const count = servers.filter((s) => s.category === cat.id).length;
+                return (
+                  <button
+                    key={cat.id}
+                    onClick={() => setSelectedCategory(cat.id)}
+                    className={`px-2 py-0.5 rounded-lg font-medium whitespace-nowrap transition-all ${
+                      selectedCategory === cat.id
+                        ? 'bg-cyan-500 text-slate-950 font-bold'
+                        : 'bg-slate-800/60 text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    {cat.badge} ({count})
+                  </button>
+                );
+              })}
             </div>
 
             {/* Server List */}
