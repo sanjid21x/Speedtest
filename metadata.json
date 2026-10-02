@@ -1,0 +1,6 @@
+{
+  "name": "SpeedTest",
+  "description": "Test your internet download speed, upload speed, ping and jitter with a fast browser-based speed test.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
