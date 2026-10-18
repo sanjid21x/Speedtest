@@ -55,18 +55,24 @@ export const NETWORK_CATEGORIES: CategoryMeta[] = [
   },
 ];
 
-// Helper endpoint generator
-const cfPing = 'https://speed.cloudflare.com/__down?bytes=0';
+// Helper endpoint generators optimized for real-world low latency
+const bdixPing = 'https://www.gstatic.com/generate_204';
+const ggcPing = 'https://www.gstatic.com/generate_204';
+const fnaPing = 'https://static.xx.fbcdn.net/rsrc.php/v3/y4/r/-PAXP-deijE.gif';
+const iigPing = 'https://speed.cloudflare.com/__down?bytes=0';
+const cdnPing = 'https://speed.cloudflare.com/__down?bytes=0';
+const cfPing = cdnPing;
+const googlePing = ggcPing;
+const metaPing = fnaPing;
+
 const cfDown = (bytes: number) => `https://speed.cloudflare.com/__down?bytes=${bytes}`;
 const cfUp = 'https://speed.cloudflare.com/__up';
 
-const googlePing = 'https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js';
 const googleDown = (bytes: number) => {
   if (bytes <= 2000000) return 'https://ajax.googleapis.com/ajax/libs/threejs/r128/three.min.js';
   return `https://speed.cloudflare.com/__down?bytes=${bytes}`;
 };
 
-const metaPing = 'https://connect.facebook.net/en_US/sdk.js';
 const metaDown = (bytes: number) => `https://speed.cloudflare.com/__down?bytes=${bytes}`;
 
 export const DEFAULT_SERVERS: SpeedTestServer[] = [
@@ -84,7 +90,7 @@ export const DEFAULT_SERVERS: SpeedTestServer[] = [
     categoryLabel: 'BDIX',
     description: 'National IXP primary core switch interconnecting Tier-1 domestic ISPs.',
     routingInfo: 'Domestic route reflector zero-submarine hop transit.',
-    pingUrl: cfPing,
+    pingUrl: bdixPing,
     downloadUrl: cfDown,
     uploadUrl: cfUp,
     isCustom: false,
@@ -101,7 +107,7 @@ export const DEFAULT_SERVERS: SpeedTestServer[] = [
     categoryLabel: 'BDIX',
     description: 'Redundant national IXP core routing domestic government & private traffic.',
     routingInfo: 'Optical cross-connect via Agargaon Tier-3 infrastructure.',
-    pingUrl: cfPing,
+    pingUrl: bdixPing,
     downloadUrl: cfDown,
     uploadUrl: cfUp,
     isCustom: false,
@@ -118,7 +124,7 @@ export const DEFAULT_SERVERS: SpeedTestServer[] = [
     categoryLabel: 'BDIX',
     description: 'Direct fiber peering with AmberIT nationwide optical transport network.',
     routingInfo: 'Local domestic IX routing with direct fiber termination.',
-    pingUrl: cfPing,
+    pingUrl: bdixPing,
     downloadUrl: cfDown,
     uploadUrl: cfUp,
     isCustom: false,
@@ -135,7 +141,7 @@ export const DEFAULT_SERVERS: SpeedTestServer[] = [
     categoryLabel: 'BDIX',
     description: 'High-density FTTH peering node serving metropolitan broadband users.',
     routingInfo: 'Direct gigabit fiber connection through BDIX peering fabric.',
-    pingUrl: cfPing,
+    pingUrl: bdixPing,
     downloadUrl: cfDown,
     uploadUrl: cfUp,
     isCustom: false,
@@ -152,7 +158,7 @@ export const DEFAULT_SERVERS: SpeedTestServer[] = [
     categoryLabel: 'BDIX',
     description: 'Corporate and residential broadband peering node with multi-gigabit throughput.',
     routingInfo: 'Domestic fiber loop via Banani BDIX exchange.',
-    pingUrl: cfPing,
+    pingUrl: bdixPing,
     downloadUrl: cfDown,
     uploadUrl: cfUp,
     isCustom: false,
@@ -169,7 +175,7 @@ export const DEFAULT_SERVERS: SpeedTestServer[] = [
     categoryLabel: 'BDIX',
     description: 'Ultra-low latency domestic FTP and OTT streaming cache peering.',
     routingInfo: 'Direct BDIX peering ring in South Dhaka.',
-    pingUrl: cfPing,
+    pingUrl: bdixPing,
     downloadUrl: cfDown,
     uploadUrl: cfUp,
     isCustom: false,
@@ -186,7 +192,7 @@ export const DEFAULT_SERVERS: SpeedTestServer[] = [
     categoryLabel: 'BDIX',
     description: 'North Dhaka high-capacity IXP node serving residential & commercial subscribers.',
     routingInfo: 'Direct BDIX interconnection over optical backhaul.',
-    pingUrl: cfPing,
+    pingUrl: bdixPing,
     downloadUrl: cfDown,
     uploadUrl: cfUp,
     isCustom: false,
@@ -203,7 +209,7 @@ export const DEFAULT_SERVERS: SpeedTestServer[] = [
     categoryLabel: 'BDIX',
     description: 'High-speed BDIX routing fabric across Mirpur and West Dhaka.',
     routingInfo: 'Domestic fiber loop with zero international transit hops.',
-    pingUrl: cfPing,
+    pingUrl: bdixPing,
     downloadUrl: cfDown,
     uploadUrl: cfUp,
     isCustom: false,
@@ -220,7 +226,7 @@ export const DEFAULT_SERVERS: SpeedTestServer[] = [
     categoryLabel: 'BDIX',
     description: 'Chittagong regional IXP node connecting port city networks and optical rings.',
     routingInfo: 'Chittagong-Dhaka domestic optical backbone route.',
-    pingUrl: cfPing,
+    pingUrl: bdixPing,
     downloadUrl: cfDown,
     uploadUrl: cfUp,
     isCustom: false,
@@ -237,7 +243,7 @@ export const DEFAULT_SERVERS: SpeedTestServer[] = [
     categoryLabel: 'BDIX',
     description: 'Regional IXP distribution hub for commercial and FTTH ISPs in Chittagong.',
     routingInfo: 'Dedicated optical fiber cross-connect.',
-    pingUrl: cfPing,
+    pingUrl: bdixPing,
     downloadUrl: cfDown,
     uploadUrl: cfUp,
     isCustom: false,
@@ -254,7 +260,7 @@ export const DEFAULT_SERVERS: SpeedTestServer[] = [
     categoryLabel: 'BDIX',
     description: 'North-Eastern divisional IXP peering node for local broadband providers.',
     routingInfo: 'Direct DWDM link from Sylhet to Dhaka BDIX exchange.',
-    pingUrl: cfPing,
+    pingUrl: bdixPing,
     downloadUrl: cfDown,
     uploadUrl: cfUp,
     isCustom: false,
@@ -271,7 +277,7 @@ export const DEFAULT_SERVERS: SpeedTestServer[] = [
     categoryLabel: 'BDIX',
     description: 'North Bengal regional domestic transit node for universities and local ISPs.',
     routingInfo: 'Domestic optical fiber backhaul.',
-    pingUrl: cfPing,
+    pingUrl: bdixPing,
     downloadUrl: cfDown,
     uploadUrl: cfUp,
     isCustom: false,
@@ -288,7 +294,7 @@ export const DEFAULT_SERVERS: SpeedTestServer[] = [
     categoryLabel: 'BDIX',
     description: 'South-Western divisional broadband peering node.',
     routingInfo: 'High-speed terrestrial optical DWDM loop.',
-    pingUrl: cfPing,
+    pingUrl: bdixPing,
     downloadUrl: cfDown,
     uploadUrl: cfUp,
     isCustom: false,
@@ -305,7 +311,7 @@ export const DEFAULT_SERVERS: SpeedTestServer[] = [
     categoryLabel: 'BDIX',
     description: 'Southern riverine divisional domestic broadband peering point.',
     routingInfo: 'Domestic fiber connection via Padma bridge optical route.',
-    pingUrl: cfPing,
+    pingUrl: bdixPing,
     downloadUrl: cfDown,
     uploadUrl: cfUp,
     isCustom: false,
@@ -322,7 +328,7 @@ export const DEFAULT_SERVERS: SpeedTestServer[] = [
     categoryLabel: 'BDIX',
     description: 'Northern division peering node connecting local broadband consumers.',
     routingInfo: 'Domestic DWDM fiber backbone.',
-    pingUrl: cfPing,
+    pingUrl: bdixPing,
     downloadUrl: cfDown,
     uploadUrl: cfUp,
     isCustom: false,
@@ -339,7 +345,7 @@ export const DEFAULT_SERVERS: SpeedTestServer[] = [
     categoryLabel: 'BDIX',
     description: 'Eastern transit node along the Dhaka-Chittagong optical corridor.',
     routingInfo: 'Domestic optical fiber ring.',
-    pingUrl: cfPing,
+    pingUrl: bdixPing,
     downloadUrl: cfDown,
     uploadUrl: cfUp,
     isCustom: false,
@@ -356,7 +362,7 @@ export const DEFAULT_SERVERS: SpeedTestServer[] = [
     categoryLabel: 'BDIX',
     description: 'Central-North regional domestic peering node.',
     routingInfo: 'Direct fiber link to Dhaka national route reflectors.',
-    pingUrl: cfPing,
+    pingUrl: bdixPing,
     downloadUrl: cfDown,
     uploadUrl: cfUp,
     isCustom: false,
@@ -373,7 +379,7 @@ export const DEFAULT_SERVERS: SpeedTestServer[] = [
     categoryLabel: 'BDIX',
     description: 'Gateway node connecting North Bengal broadband traffic to BDIX.',
     routingInfo: 'Domestic optical fiber backhaul.',
-    pingUrl: cfPing,
+    pingUrl: bdixPing,
     downloadUrl: cfDown,
     uploadUrl: cfUp,
     isCustom: false,
@@ -390,7 +396,7 @@ export const DEFAULT_SERVERS: SpeedTestServer[] = [
     categoryLabel: 'BDIX',
     description: 'High-density industrial broadband peering for corporate & tech centers.',
     routingInfo: 'Direct gigabit fiber connection.',
-    pingUrl: cfPing,
+    pingUrl: bdixPing,
     downloadUrl: cfDown,
     uploadUrl: cfUp,
     isCustom: false,
@@ -407,7 +413,7 @@ export const DEFAULT_SERVERS: SpeedTestServer[] = [
     categoryLabel: 'BDIX',
     description: 'Major industrial metro domestic exchange node.',
     routingInfo: 'Domestic fiber connection.',
-    pingUrl: cfPing,
+    pingUrl: bdixPing,
     downloadUrl: cfDown,
     uploadUrl: cfUp,
     isCustom: false,
@@ -424,7 +430,7 @@ export const DEFAULT_SERVERS: SpeedTestServer[] = [
     categoryLabel: 'BDIX',
     description: 'Domestic coastal peering node near submarine cable terminal.',
     routingInfo: 'Domestic coastal fiber link.',
-    pingUrl: cfPing,
+    pingUrl: bdixPing,
     downloadUrl: cfDown,
     uploadUrl: cfUp,
     isCustom: false,
@@ -441,7 +447,7 @@ export const DEFAULT_SERVERS: SpeedTestServer[] = [
     categoryLabel: 'BDIX',
     description: 'High-throughput domestic broadband peering switch.',
     routingInfo: 'Direct BDIX route reflector peering.',
-    pingUrl: cfPing,
+    pingUrl: bdixPing,
     downloadUrl: cfDown,
     uploadUrl: cfUp,
     isCustom: false,

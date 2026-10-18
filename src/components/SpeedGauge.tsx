@@ -105,19 +105,38 @@ export const SpeedGauge: React.FC<SpeedGaugeProps> = ({
   const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
   const ARC_LENGTH = (TOTAL_SWEEP / 360) * CIRCUMFERENCE;
 
+  // Active speed to display, smoothed with EMA for fluid Ookla-style needle motion
+  const [smoothedValue, setSmoothedValue] = React.useState(currentValue);
+
+  React.useEffect(() => {
+    if (!isTesting) {
+      setSmoothedValue(isCompleted ? downloadValue : 0);
+      return;
+    }
+    const target = stage === 'testing_download' || stage === 'testing_upload' ? currentValue : 0;
+    let animId: number;
+    const animate = () => {
+      setSmoothedValue((prev) => {
+        const delta = target - prev;
+        if (Math.abs(delta) < 0.15) return target;
+        return prev + delta * 0.24;
+      });
+      animId = requestAnimationFrame(animate);
+    };
+    animId = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(animId);
+  }, [currentValue, downloadValue, isTesting, isCompleted, stage]);
+
   // Active speedometer percentage
   const progressRatio = useMemo(() => {
-    if (stage === 'testing_download') {
-      return valueToPercent(currentValue);
-    }
-    if (stage === 'testing_upload') {
-      return valueToPercent(currentValue);
+    if (stage === 'testing_download' || stage === 'testing_upload') {
+      return valueToPercent(smoothedValue);
     }
     if (isCompleted) {
       return valueToPercent(downloadValue);
     }
     return 0;
-  }, [stage, currentValue, downloadValue, isCompleted]);
+  }, [stage, smoothedValue, downloadValue, isCompleted]);
 
   // Stroke Dashoffset for active glowing speed arc
   const strokeDashoffset = ARC_LENGTH - ARC_LENGTH * Math.min(1, Math.max(0, progressRatio));
@@ -128,23 +147,16 @@ export const SpeedGauge: React.FC<SpeedGaugeProps> = ({
   // Formatted speed number (for the bottom readout)
   const displaySpeedNumber = useMemo(() => {
     if (stage === 'testing_download' || stage === 'testing_upload') {
-      return formatSpeedValue(currentValue, unit, 1);
+      return formatSpeedValue(smoothedValue, unit, 1);
     }
     if (isCompleted) {
       return formatSpeedValue(downloadValue, unit, 1);
     }
     return '0.0';
-  }, [stage, currentValue, downloadValue, isCompleted, unit]);
+  }, [stage, smoothedValue, downloadValue, isCompleted, unit]);
 
-  // Coordinates for needle
-  const needleRad = (needleAngle * Math.PI) / 180;
   const needleLength = RADIUS - 10;
-  const needleTipX = CENTER_X + needleLength * Math.cos(needleRad);
-  const needleTipY = CENTER_Y + needleLength * Math.sin(needleRad);
-
   const tailLength = 20;
-  const tailX = CENTER_X - tailLength * Math.cos(needleRad);
-  const tailY = CENTER_Y - tailLength * Math.sin(needleRad);
 
   // Ticks computation
   const ticks = useMemo(() => {
@@ -317,7 +329,7 @@ export const SpeedGauge: React.FC<SpeedGaugeProps> = ({
               strokeDashoffset={strokeDashoffset}
               filter="url(#gauge-glow-short)"
               transform={`rotate(${START_ANGLE} ${CENTER_X} ${CENTER_Y})`}
-              className="transition-all duration-150 ease-out"
+              style={{ transition: 'stroke-dashoffset 200ms cubic-bezier(0.16, 1, 0.3, 1)' }}
             />
 
             {/* Tick Marks & Scale Numerals */}
@@ -352,13 +364,19 @@ export const SpeedGauge: React.FC<SpeedGaugeProps> = ({
               </g>
             ))}
 
-            {/* Needle with Counterweight */}
-            <g className="transition-transform duration-150 ease-out">
+            {/* Smooth Needle with Counterweight (Ookla Spring Motion) */}
+            <g
+              style={{
+                transform: `rotate(${needleAngle}deg)`,
+                transformOrigin: `${CENTER_X}px ${CENTER_Y}px`,
+                transition: 'transform 200ms cubic-bezier(0.16, 1, 0.3, 1)',
+              }}
+            >
               <line
                 x1={CENTER_X}
                 y1={CENTER_Y}
-                x2={tailX}
-                y2={tailY}
+                x2={CENTER_X - tailLength}
+                y2={CENTER_Y}
                 stroke={isDark ? '#334155' : '#94a3b8'}
                 strokeWidth="4"
                 strokeLinecap="round"
@@ -366,8 +384,8 @@ export const SpeedGauge: React.FC<SpeedGaugeProps> = ({
               <line
                 x1={CENTER_X}
                 y1={CENTER_Y}
-                x2={needleTipX}
-                y2={needleTipY}
+                x2={CENTER_X + needleLength}
+                y2={CENTER_Y}
                 stroke="#ef4444"
                 strokeWidth="3"
                 strokeLinecap="round"
@@ -376,15 +394,15 @@ export const SpeedGauge: React.FC<SpeedGaugeProps> = ({
               <line
                 x1={CENTER_X}
                 y1={CENTER_Y}
-                x2={needleTipX}
-                y2={needleTipY}
+                x2={CENTER_X + needleLength}
+                y2={CENTER_Y}
                 stroke="#ffffff"
                 strokeWidth="1.2"
                 strokeLinecap="round"
               />
               <circle
-                cx={needleTipX}
-                cy={needleTipY}
+                cx={CENTER_X + needleLength}
+                cy={CENTER_Y}
                 r="2.5"
                 fill="#ffffff"
                 stroke="#ef4444"
