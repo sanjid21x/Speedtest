@@ -80,6 +80,8 @@ export interface SpeedTestResult {
     browser: string;
     os: string;
   };
+  protocol?: string;
+  connectionType?: string;
 }
 
 export interface RouteProbeResult {
@@ -89,6 +91,15 @@ export interface RouteProbeResult {
   status: 'idle' | 'testing' | 'success' | 'failed';
   downloadMbps?: number;
   error?: string;
+}
+
+export interface IspUpstreamInfo {
+  ispName?: string;
+  asn?: string;
+  count: number;
+  upstreams: string[];
+  routeChannels: string[];
+  totalBandwidth: string;
 }
 
 export interface ClientNetworkDetails {
@@ -107,6 +118,7 @@ export interface ClientNetworkDetails {
   isLoaded: boolean;
   isLoading: boolean;
   error?: string;
+  upstreamInfo?: IspUpstreamInfo;
 }
 
 export type GameCategory = 'all' | 'pubg' | 'efootball' | 'valorant' | 'cod' | 'freefire' | 'valve';

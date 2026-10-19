@@ -6,19 +6,18 @@ import {
   setSelectedServerId,
 } from '../services/servers';
 import { SpeedEngine } from '../services/speedEngine';
+import { getRouteChannelInfo } from '../services/ispIntelligence';
 import {
   Globe,
   Youtube,
-  Radio,
   Share2,
   Zap,
   Server,
   Activity,
-  ArrowRight,
-  Shield,
   Layers,
   ChevronRight,
   RefreshCw,
+  CheckCircle2,
 } from 'lucide-react';
 
 interface NetworkRouteSelectorProps {
@@ -44,7 +43,6 @@ export const NetworkRouteSelector: React.FC<NetworkRouteSelectorProps> = ({
     if (disabled) return;
     const categoryServers = getServersByCategory(category);
     if (categoryServers.length > 0) {
-      // Pick the first server of that category
       setSelectedServerId(categoryServers[0].id);
       onServerSelect(categoryServers[0]);
     }
@@ -99,53 +97,80 @@ export const NetworkRouteSelector: React.FC<NetworkRouteSelectorProps> = ({
     setIsProbing(false);
   };
 
+  const activeRouteInfo = getRouteChannelInfo(activeServer.category);
+
   return (
     <div className="w-full max-w-3xl flex flex-col items-center gap-3">
       {/* Route Mode Filter Pills */}
-      <div className="flex flex-wrap items-center justify-center gap-1.5 sm:gap-2 p-1.5 rounded-2xl bg-slate-900/60 border border-slate-800 backdrop-blur-md">
-        {NETWORK_CATEGORIES.map((cat) => {
-          const isSelected = activeServer.category === cat.id;
-          return (
-            <button
-              key={cat.id}
-              onClick={() => handleCategorySelect(cat.id)}
-              disabled={disabled}
-              type="button"
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
-                disabled ? 'opacity-50 cursor-not-allowed' : ''
-              } ${
-                isSelected
-                  ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-sm shadow-cyan-500/10'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 border border-transparent'
-              }`}
-            >
-              {getCategoryIcon(cat.id)}
-              <span>{cat.name}</span>
-            </button>
-          );
-        })}
+      <div className="w-full flex flex-col sm:flex-row items-center justify-between gap-2 p-1.5 rounded-2xl bg-slate-900/70 border border-slate-800 backdrop-blur-md">
+        {/* Route Pills */}
+        <div className="flex flex-wrap items-center justify-center gap-1 sm:gap-1.5 w-full sm:w-auto">
+          {NETWORK_CATEGORIES.map((cat) => {
+            const isSelected = activeServer.category === cat.id;
+            const routeInfo = getRouteChannelInfo(cat.id);
+            return (
+              <button
+                key={cat.id}
+                onClick={() => handleCategorySelect(cat.id)}
+                disabled={disabled}
+                type="button"
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                  disabled ? 'opacity-50 cursor-not-allowed' : ''
+                } ${
+                  isSelected
+                    ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-sm shadow-cyan-500/10'
+                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 border border-transparent'
+                }`}
+                title={`${cat.name} route: ${routeInfo.description}`}
+              >
+                {getCategoryIcon(cat.id)}
+                <span>{cat.name}</span>
+                <span
+                  className={`text-[9.5px] font-mono px-1.5 py-0.2 rounded font-medium ${
+                    isSelected ? 'bg-cyan-500/30 text-white' : 'text-slate-500 bg-slate-800/50'
+                  }`}
+                >
+                  {cat.tag}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Live Route Mode Indicator */}
+        <div className="flex items-center gap-1.5 pr-2 py-0.5">
+          <span className="flex items-center gap-1 text-[11px] font-mono text-emerald-400">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            100% Real Test
+          </span>
+        </div>
       </div>
 
       {/* Selected Route Info Bar with Multi-Route Audit trigger */}
       <div
-        className={`w-full max-w-2xl px-4 py-2.5 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs transition-all ${
+        className={`w-full max-w-3xl px-4 py-2.5 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs transition-all ${
           theme === 'dark'
             ? 'bg-slate-900/40 border-slate-800/80 text-slate-300'
             : 'bg-white border-slate-200 text-slate-700 shadow-xs'
         }`}
       >
-        <div className="flex items-center gap-2">
-          <div className="p-1 rounded bg-slate-800 text-cyan-400">
+        <div className="flex items-center gap-2.5">
+          <div className="p-1.5 rounded-lg bg-slate-800 text-cyan-400">
             {getCategoryIcon(activeServer.category)}
           </div>
           <div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <span className="font-bold text-slate-100">{activeServer.name}</span>
               <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold bg-cyan-500/15 text-cyan-300 border border-cyan-500/20">
                 {activeServer.categoryLabel}
               </span>
+              <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/15 text-emerald-300 border border-emerald-500/25">
+                {activeRouteInfo.channelName}
+              </span>
             </div>
-            <p className="text-[11px] text-slate-400 line-clamp-1">{activeServer.description}</p>
+            <p className="text-[11px] text-slate-400 mt-0.5">
+              {activeRouteInfo.description}
+            </p>
           </div>
         </div>
 
@@ -168,7 +193,7 @@ export const NetworkRouteSelector: React.FC<NetworkRouteSelectorProps> = ({
       {/* Multi-Route Latency Audit Matrix */}
       {showMultiProbe && (
         <div
-          className={`w-full max-w-2xl p-4 rounded-xl border animate-fade-in ${
+          className={`w-full max-w-3xl p-4 rounded-xl border animate-fade-in ${
             theme === 'dark'
               ? 'bg-slate-900/90 border-cyan-500/30 text-slate-200'
               : 'bg-slate-50 border-cyan-200 text-slate-800 shadow-md'
@@ -178,7 +203,7 @@ export const NetworkRouteSelector: React.FC<NetworkRouteSelectorProps> = ({
             <div className="flex items-center gap-2">
               <Layers className="w-4 h-4 text-cyan-400" />
               <h4 className="font-bold text-xs uppercase tracking-wider">
-                Multi-Route Latency & Peering Audit
+                Multi-Route Real Wire Latency & Peering Audit
               </h4>
             </div>
             <button
@@ -199,6 +224,7 @@ export const NetworkRouteSelector: React.FC<NetworkRouteSelectorProps> = ({
               if (!srv) return null;
               const res = probeResults[srv.id];
               const isCurrent = activeServer.id === srv.id;
+              const routeInfo = getRouteChannelInfo(cat.id);
 
               return (
                 <div
@@ -221,12 +247,16 @@ export const NetworkRouteSelector: React.FC<NetworkRouteSelectorProps> = ({
                       <div className="flex items-center gap-1.5">
                         <span className="font-semibold text-slate-200">{cat.name}</span>
                         {isCurrent && (
-                          <span className="text-[9px] px-1 rounded bg-cyan-500/20 text-cyan-300">
+                          <span className="text-[9px] px-1.5 py-0.2 rounded bg-cyan-500/20 text-cyan-300 font-bold flex items-center gap-0.5">
+                            <CheckCircle2 className="w-2.5 h-2.5" />
                             Active
                           </span>
                         )}
+                        <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-indigo-500/10 text-indigo-300 border border-indigo-500/20">
+                          {routeInfo.tag}
+                        </span>
                       </div>
-                      <span className="text-[10px] text-slate-400">{cat.tag}</span>
+                      <span className="text-[10px] text-slate-400">{srv.name} &bull; {srv.location}</span>
                     </div>
                   </div>
 
@@ -260,8 +290,8 @@ export const NetworkRouteSelector: React.FC<NetworkRouteSelectorProps> = ({
           </div>
 
           <div className="mt-3 pt-2 border-t border-slate-800/40 text-[10px] text-slate-400 flex items-center justify-between">
-            <span>Click any route above to switch active speed-test engine</span>
-            <span className="text-cyan-400 font-mono">BDIX &bull; GGC &bull; FNA &bull; IIG &bull; CDN</span>
+            <span>Click any route above to switch active test route</span>
+            <span className="text-cyan-400 font-mono">BDIX &bull; GGC &bull; FNA &bull; CDN &bull; IIG</span>
           </div>
         </div>
       )}

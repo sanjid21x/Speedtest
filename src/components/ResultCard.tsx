@@ -218,14 +218,23 @@ Tested on: ${formattedDate}`;
           </span>
         </div>
 
-        {/* Network and browser meta */}
+        {/* Network, protocol, zero-relay and browser meta */}
         <div className="flex flex-wrap items-center justify-between gap-2 pt-1 text-[11px] text-slate-400">
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1.5 flex-wrap">
             <Wifi className="w-3.5 h-3.5 text-cyan-400" />
-            <span>Connection:</span>
             <span className="font-mono text-slate-200">
               {result.networkInfo?.effectiveType?.toUpperCase() || 'BROADBAND'}
             </span>
+            {result.protocol && (
+              <span className="text-[10px] px-1.5 py-0.5 rounded font-mono font-medium bg-emerald-500/15 text-emerald-300 border border-emerald-500/25">
+                ⚡ {result.protocol}
+              </span>
+            )}
+            {result.connectionType && (
+              <span className="text-[10px] px-1.5 py-0.5 rounded font-mono font-medium bg-blue-500/15 text-blue-300 border border-blue-500/25">
+                🔒 {result.connectionType}
+              </span>
+            )}
           </div>
           {result.deviceInfo && (
             <div className="flex items-center gap-1">

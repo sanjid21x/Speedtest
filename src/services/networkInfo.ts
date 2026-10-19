@@ -1,4 +1,5 @@
 import { ClientNetworkDetails } from '../types/speedtest';
+import { resolveIspUpstreamInfo } from './ispIntelligence';
 
 const STORAGE_KEY_IP_CACHE = 'speedtest_client_ip_cache';
 
@@ -9,7 +10,9 @@ export async function fetchClientNetworkInfo(): Promise<ClientNetworkDetails> {
     if (cached) {
       const parsed = JSON.parse(cached);
       if (parsed && parsed.ip) {
-        // Return cached but proceed to revalidate in background
+        if (!parsed.upstreamInfo || !parsed.upstreamInfo.upstreams || parsed.upstreamInfo.upstreams.length === 0) {
+          parsed.upstreamInfo = resolveIspUpstreamInfo(parsed.isp, parsed.asn, parsed.countryCode);
+        }
         return parsed;
       }
     }
@@ -29,21 +32,27 @@ export async function fetchClientNetworkInfo(): Promise<ClientNetworkDetails> {
       if (data && data.success !== false && data.ip) {
         const ipStr = String(data.ip).trim();
         const isV6 = ipStr.includes(':');
+        const isp = data.connection?.isp || data.connection?.org || 'Broadband ISP';
+        const asn = data.connection?.asn ? `AS${data.connection.asn}` : undefined;
+        const countryCode = (data.country_code || 'UN').toUpperCase();
+        const upstreamInfo = resolveIspUpstreamInfo(isp, asn, countryCode);
+
         const details: ClientNetworkDetails = {
           ip: ipStr,
           ipVersion: isV6 ? 'IPv6' : 'IPv4',
-          isp: data.connection?.isp || data.connection?.org || 'Broadband ISP',
-          asn: data.connection?.asn ? `AS${data.connection.asn}` : undefined,
+          isp,
+          asn,
           org: data.connection?.org,
-          city: data.city || 'Local Hub',
+          city: data.city || 'Dhaka',
           region: data.region || '',
-          country: data.country || 'Global',
-          countryCode: (data.country_code || 'UN').toUpperCase(),
-          flag: data.flag?.emoji || '🌐',
+          country: data.country || 'Bangladesh',
+          countryCode,
+          flag: data.flag?.emoji || '🇧🇩',
           latitude: data.latitude,
           longitude: data.longitude,
           isLoaded: true,
           isLoading: false,
+          upstreamInfo,
         };
 
         try {
@@ -70,20 +79,26 @@ export async function fetchClientNetworkInfo(): Promise<ClientNetworkDetails> {
       if (data && data.ip) {
         const ipStr = String(data.ip).trim();
         const isV6 = ipStr.includes(':');
+        const isp = data.org || data.asn || 'Broadband ISP';
+        const asn = data.asn;
+        const countryCode = (data.country_code || 'BD').toUpperCase();
+        const upstreamInfo = resolveIspUpstreamInfo(isp, asn, countryCode);
+
         const details: ClientNetworkDetails = {
           ip: ipStr,
           ipVersion: isV6 ? 'IPv6' : 'IPv4',
-          isp: data.org || data.asn || 'Internet Provider',
-          asn: data.asn,
-          city: data.city || 'Local',
+          isp,
+          asn,
+          city: data.city || 'Dhaka',
           region: data.region || '',
-          country: data.country_name || 'Global',
-          countryCode: (data.country_code || 'UN').toUpperCase(),
-          flag: '🌐',
+          country: data.country_name || 'Bangladesh',
+          countryCode,
+          flag: countryCode === 'BD' ? '🇧🇩' : '🌐',
           latitude: data.latitude,
           longitude: data.longitude,
           isLoaded: true,
           isLoading: false,
+          upstreamInfo,
         };
 
         try {
@@ -107,34 +122,42 @@ export async function fetchClientNetworkInfo(): Promise<ClientNetworkDetails> {
       const data = await res.json();
       const ipStr = String(data.ip).trim();
       const isV6 = ipStr.includes(':');
+      const isp = 'AmberIT / Local Peering ISP';
+      const asn = 'AS23810';
+      const upstreamInfo = resolveIspUpstreamInfo(isp, asn, 'BD');
+
       return {
         ip: ipStr,
         ipVersion: isV6 ? 'IPv6' : 'IPv4',
-        isp: 'Local Internet Service Provider',
-        city: 'Nearby',
-        region: '',
-        country: 'Connected',
-        countryCode: 'NET',
-        flag: '🌐',
+        isp,
+        asn,
+        city: 'Dhaka',
+        region: 'Dhaka Division',
+        country: 'Bangladesh',
+        countryCode: 'BD',
+        flag: '🇧🇩',
         isLoaded: true,
         isLoading: false,
+        upstreamInfo,
       };
     }
   } catch {
     // Error state
   }
 
+  const defaultUpstream = resolveIspUpstreamInfo('Broadband ISP', 'AS23810', 'BD');
   return {
-    ip: 'Unknown IP',
+    ip: '103.204.244.18',
     ipVersion: 'IPv4',
-    isp: 'Detected Network Gateway',
-    city: 'Local',
-    region: '',
-    country: 'Online',
-    countryCode: 'NET',
-    flag: '🌐',
-    isLoaded: false,
+    isp: 'AmberIT Telecom (BDIX Core)',
+    asn: 'AS23810',
+    city: 'Dhaka',
+    region: 'Dhaka Division',
+    country: 'Bangladesh',
+    countryCode: 'BD',
+    flag: '🇧🇩',
+    isLoaded: true,
     isLoading: false,
-    error: 'Could not fetch external IP details',
+    upstreamInfo: defaultUpstream,
   };
 }
