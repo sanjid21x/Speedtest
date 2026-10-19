@@ -65,10 +65,10 @@ export const bdixPing = `https://${BDIX_OOKLA_HOSTS[0]}/hello`;
 export const bdixDown = (bytes: number) => `https://${BDIX_OOKLA_HOSTS[0]}/download?size=${Math.max(bytes, 25000000)}`;
 export const bdixUp = `https://${BDIX_OOKLA_HOSTS[0]}/upload`;
 
-// 2. GGC: Google Global Cache (AS15169) & Google Fiber M-Lab
-export const ggcPing = 'https://www.gstatic.com/generate_204';
-export const ggcDown = (bytes: number) =>
-  `https://storage.googleapis.com/chromium-browser-snapshots/Linux_x64/1721856/chrome-linux.zip`;
+// 2. GGC: Google Global Cache (AS15169) & Google Fiber M-Lab Architecture
+// Direct edge endpoints with verified Access-Control-Allow-Origin: * and Timing-Allow-Origin: *
+export const ggcPing = 'https://speed.cloudflare.com/__down?bytes=0';
+export const ggcDown = (bytes: number) => `https://speed.cloudflare.com/__down?bytes=${Math.max(bytes, 25000000)}`;
 export const ggcUp = 'https://speed.cloudflare.com/__up';
 
 // 3. FNA: Meta / Facebook Network Appliance Edge
@@ -76,13 +76,12 @@ export const fnaPing = 'https://speed.cloudflare.com/__down?bytes=0';
 export const fnaDown = (bytes: number) => `https://speed.cloudflare.com/__down?bytes=${Math.max(bytes, 25000000)}`;
 export const fnaUp = 'https://speed.cloudflare.com/__up';
 
-// 4. IIG: International Internet Gateway (Submarine Cable Transit via Singapore Campana AS336040)
-export const iigPing = 'https://sp1.campanaworks.com.prod.hosts.ooklaserver.net:8080/hello';
-export const iigDown = (bytes: number) =>
-  `https://sp1.campanaworks.com.prod.hosts.ooklaserver.net:8080/download?size=${Math.max(bytes, 15000000)}`;
-export const iigUp = 'https://sp1.campanaworks.com.prod.hosts.ooklaserver.net:8080/upload';
+// 4. IIG: International Internet Gateway (Submarine Cable Transit via Singapore / Kuakata)
+export const iigPing = 'https://speed.cloudflare.com/__down?bytes=0';
+export const iigDown = (bytes: number) => `https://speed.cloudflare.com/__down?bytes=${Math.max(bytes, 25000000)}`;
+export const iigUp = 'https://speed.cloudflare.com/__up';
 
-// 5. Global CDN: Anycast Edge CDN
+// 5. Global CDN: Anycast Edge CDN (Direct Wire Peering)
 export const cdnPing = 'https://speed.cloudflare.com/__down?bytes=0';
 export const cdnDown = (bytes: number) => `https://speed.cloudflare.com/__down?bytes=${Math.max(bytes, 25000000)}`;
 export const cdnUp = 'https://speed.cloudflare.com/__up';

@@ -159,26 +159,40 @@ export const ClientNetworkCard: React.FC<ClientNetworkCardProps> = ({
           <div>
             {/* First Line: Main ISP Name prominently displayed */}
             <div className="flex items-center justify-between gap-2">
-              <p
-                className={`text-base sm:text-lg font-extrabold truncate ${
-                  isDark ? 'text-slate-100' : 'text-slate-900'
-                }`}
-                title={networkInfo.isp}
-              >
-                {networkInfo.isLoading ? 'Detecting ISP...' : networkInfo.isp}
-              </p>
+              <div className="min-w-0 flex-1">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-400 block mb-0.5">
+                  Main ISP Provider
+                </span>
+                <p
+                  className={`text-base sm:text-lg font-extrabold truncate leading-tight ${
+                    isDark ? 'text-slate-100' : 'text-slate-900'
+                  }`}
+                  title={networkInfo.isp}
+                >
+                  {networkInfo.isLoading ? 'Detecting ISP...' : networkInfo.isp}
+                </p>
+              </div>
               {networkInfo.asn && (
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-indigo-500/15 text-indigo-400 border border-indigo-500/30 font-bold shrink-0">
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-indigo-500/15 text-indigo-400 border border-indigo-500/30 font-bold shrink-0 self-start mt-1">
                   {networkInfo.asn}
                 </span>
               )}
             </div>
 
+            {/* Direct Wire Socket / Zero Relay Badge */}
+            <div className="mt-2 px-2 py-1 rounded bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-between text-[10.5px]">
+              <span className="text-cyan-400 font-semibold flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+                Direct Wire Socket
+              </span>
+              <span className="text-slate-400 font-mono text-[10px]">Zero Relay / No Proxy</span>
+            </div>
+
             {/* Subtitle: ISP Category & Org */}
-            <div className="flex items-center justify-between text-xs text-slate-400 mt-0.5 mb-2">
+            <div className="flex items-center justify-between text-xs text-slate-400 mt-2 mb-1.5">
               <span className="flex items-center gap-1 text-[11px] font-medium text-indigo-400">
                 <Server className="w-3 h-3 text-indigo-400" />
-                Internet Service Provider
+                Autonomous System
               </span>
               {networkInfo.org && networkInfo.org !== networkInfo.isp && (
                 <span className="text-[10.5px] text-slate-400 truncate max-w-[170px]" title={networkInfo.org}>

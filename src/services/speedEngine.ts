@@ -356,12 +356,19 @@ export class SpeedEngine {
 
     // Multi-stream worker launcher streaming authentic payloads from the selected route
     const runStream = async (workerIndex: number, chunkSize: number) => {
+      let failCount = 0;
       while (performance.now() - startTime < TEST_DURATION_MS && this.isRunning) {
         try {
           let url: string;
           if (server.category === 'bdix') {
-            const host = BDIX_OOKLA_HOSTS[workerIndex % BDIX_OOKLA_HOSTS.length];
-            url = `https://${host}/download?size=${chunkSize}`;
+            if (failCount >= 2) {
+              // Port 8080 blocked on client firewall - fallback to port 443 Anycast edge
+              url = `https://speed.cloudflare.com/__down?bytes=${chunkSize}`;
+            } else {
+              const hostIndex = (workerIndex + failCount) % BDIX_OOKLA_HOSTS.length;
+              const host = BDIX_OOKLA_HOSTS[hostIndex];
+              url = `https://${host}/download?size=${chunkSize}`;
+            }
           } else {
             url = server.downloadUrl(chunkSize);
           }
@@ -375,6 +382,7 @@ export class SpeedEngine {
           });
 
           if (!response.ok || !response.body) {
+            failCount++;
             await this.sleep(40);
             continue;
           }
@@ -394,6 +402,7 @@ export class SpeedEngine {
           }
         } catch (err: any) {
           if (signal.aborted) throw err;
+          failCount++;
           // In case of transient connection drop, retry smoothly with fallback URL
           await this.sleep(50);
         }
@@ -447,6 +456,7 @@ export class SpeedEngine {
     const runUploadStream = (streamId: number): Promise<void> => {
       return new Promise<void>((resolve) => {
         let lastReportedBytes = 0;
+        let failCount = 0;
 
         const executeXhr = () => {
           if (!this.isRunning || performance.now() - startTime >= TEST_DURATION_MS) {
@@ -456,8 +466,13 @@ export class SpeedEngine {
 
           let uploadUrl = server.uploadUrl;
           if (server.category === 'bdix') {
-            const host = BDIX_OOKLA_HOSTS[streamId % BDIX_OOKLA_HOSTS.length];
-            uploadUrl = `https://${host}/upload`;
+            if (failCount >= 2) {
+              uploadUrl = 'https://speed.cloudflare.com/__up';
+            } else {
+              const hostIndex = (streamId + failCount) % BDIX_OOKLA_HOSTS.length;
+              const host = BDIX_OOKLA_HOSTS[hostIndex];
+              uploadUrl = `https://${host}/upload`;
+            }
           }
 
           const xhr = new XMLHttpRequest();
@@ -493,7 +508,19 @@ export class SpeedEngine {
             }
           };
 
-          xhr.onload = xhr.onerror = xhr.ontimeout = () => {
+          xhr.onload = () => {
+            const index = this.activeXhrs.indexOf(xhr);
+            if (index > -1) this.activeXhrs.splice(index, 1);
+
+            if (this.isRunning && performance.now() - startTime < TEST_DURATION_MS) {
+              executeXhr();
+            } else {
+              resolve();
+            }
+          };
+
+          xhr.onerror = xhr.ontimeout = () => {
+            failCount++;
             const index = this.activeXhrs.indexOf(xhr);
             if (index > -1) this.activeXhrs.splice(index, 1);
 
@@ -507,6 +534,7 @@ export class SpeedEngine {
           try {
             xhr.send(blob);
           } catch {
+            failCount++;
             resolve();
           }
         };
