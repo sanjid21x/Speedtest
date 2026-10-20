@@ -20,6 +20,8 @@ export type NetworkCategory =
 
 export type SpeedUnit = 'mbps' | 'MBps'; // 'mbps' = Megabits/s (ISP rate), 'MBps' = Megabytes/s (download rate)
 
+export type ConnectionMode = 'single' | 'multi' | 'custom';
+
 export type TestDurationOption = 5 | 10 | 15 | 20 | 30;
 
 export interface SpeedTestServer {
@@ -53,6 +55,7 @@ export interface StreamProgress {
   instantMbps: number;
   averageMbps: number;
   progressPercent: number;
+  channelsCount?: number;
 }
 
 export interface SpeedTestResult {
@@ -82,6 +85,8 @@ export interface SpeedTestResult {
   };
   protocol?: string;
   connectionType?: string;
+  connectionMode?: ConnectionMode;
+  channelsCount?: number;
 }
 
 export interface RouteProbeResult {

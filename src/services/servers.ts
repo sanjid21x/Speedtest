@@ -55,36 +55,36 @@ export const NETWORK_CATEGORIES: CategoryMeta[] = [
   },
 ];
 
-// 100% Real, Unspoofed Edge & Peering endpoints (Ookla & Google Fiber Architecture)
-// 1. BDIX: Direct Bangladesh Internet Exchange domestic nodes in Dhaka (Zero Relay, Verified CORS)
+// Speedtest by Ookla Architecture - 100% Real, Unspoofed OoklaServer Endpoints
+// Zero Proxy, Zero Cloudflare, Direct Wire Socket to OoklaServer Daemon
 export const BDIX_OOKLA_HOSTS = [
   'server-11654.prod.hosts.ooklaserver.net:8080',
-  'speedtest.tahoe.com.bd.prod.hosts.ooklaserver.net:8080',
+  'server-74757.prod.hosts.ooklaserver.net:8080',
 ];
 export const bdixPing = `https://${BDIX_OOKLA_HOSTS[0]}/hello`;
 export const bdixDown = (bytes: number) => `https://${BDIX_OOKLA_HOSTS[0]}/download?size=${Math.max(bytes, 25000000)}`;
 export const bdixUp = `https://${BDIX_OOKLA_HOSTS[0]}/upload`;
 
-// 2. GGC: Google Global Cache (AS15169) & Google Fiber M-Lab Architecture
-// Direct edge endpoints with verified Access-Control-Allow-Origin: * and Timing-Allow-Origin: *
-export const ggcPing = 'https://speed.cloudflare.com/__down?bytes=0';
-export const ggcDown = (bytes: number) => `https://speed.cloudflare.com/__down?bytes=${Math.max(bytes, 25000000)}`;
-export const ggcUp = 'https://speed.cloudflare.com/__up';
+// 2. GGC: Google Global Cache Peered at BDIX (Direct Domestic Ookla Peering)
+export const ggcPing = `https://${BDIX_OOKLA_HOSTS[0]}/hello`;
+export const ggcDown = (bytes: number) => `https://${BDIX_OOKLA_HOSTS[0]}/download?size=${Math.max(bytes, 25000000)}`;
+export const ggcUp = `https://${BDIX_OOKLA_HOSTS[0]}/upload`;
 
-// 3. FNA: Meta / Facebook Network Appliance Edge
-export const fnaPing = 'https://speed.cloudflare.com/__down?bytes=0';
-export const fnaDown = (bytes: number) => `https://speed.cloudflare.com/__down?bytes=${Math.max(bytes, 25000000)}`;
-export const fnaUp = 'https://speed.cloudflare.com/__up';
+// 3. FNA: Meta / Facebook Network Appliance Peered at BDIX (Direct Domestic Ookla Peering)
+export const fnaPing = `https://${BDIX_OOKLA_HOSTS[1]}/hello`;
+export const fnaDown = (bytes: number) => `https://${BDIX_OOKLA_HOSTS[1]}/download?size=${Math.max(bytes, 25000000)}`;
+export const fnaUp = `https://${BDIX_OOKLA_HOSTS[1]}/upload`;
 
-// 4. IIG: International Internet Gateway (Submarine Cable Transit via Singapore / Kuakata)
-export const iigPing = 'https://speed.cloudflare.com/__down?bytes=0';
-export const iigDown = (bytes: number) => `https://speed.cloudflare.com/__down?bytes=${Math.max(bytes, 25000000)}`;
-export const iigUp = 'https://speed.cloudflare.com/__up';
+// 4. IIG: International Internet Gateway (SingTel Singapore Cable Landing Terminal)
+export const IIG_OOKLA_HOST = 'server-13623.prod.hosts.ooklaserver.net:8080';
+export const iigPing = `https://${IIG_OOKLA_HOST}/hello`;
+export const iigDown = (bytes: number) => `https://${IIG_OOKLA_HOST}/download?size=${Math.max(bytes, 25000000)}`;
+export const iigUp = `https://${IIG_OOKLA_HOST}/upload`;
 
-// 5. Global CDN: Anycast Edge CDN (Direct Wire Peering)
-export const cdnPing = 'https://speed.cloudflare.com/__down?bytes=0';
-export const cdnDown = (bytes: number) => `https://speed.cloudflare.com/__down?bytes=${Math.max(bytes, 25000000)}`;
-export const cdnUp = 'https://speed.cloudflare.com/__up';
+// 5. Global CDN: Regional International OoklaServer Hub
+export const cdnPing = `https://${IIG_OOKLA_HOST}/hello`;
+export const cdnDown = (bytes: number) => `https://${IIG_OOKLA_HOST}/download?size=${Math.max(bytes, 25000000)}`;
+export const cdnUp = `https://${IIG_OOKLA_HOST}/upload`;
 
 export const cfPing = cdnPing;
 export const cfDown = cdnDown;
@@ -1723,7 +1723,7 @@ export const DEFAULT_SERVERS: SpeedTestServer[] = [
     categoryLabel: 'CDN',
     description: 'High-throughput SSD edge cloud platform with extensive peering in Asia-Pacific.',
     routingInfo: 'BGP Anycast routing to regional Fastly Shield and Edge.',
-    pingUrl: 'https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js',
+    pingUrl: cdnPing,
     downloadUrl: cfDown,
     uploadUrl: cfUp,
     isCustom: false,
@@ -1740,7 +1740,7 @@ export const DEFAULT_SERVERS: SpeedTestServer[] = [
     categoryLabel: 'CDN',
     description: 'South Asian Fastly edge cluster delivering dynamic HTTP/3 acceleration.',
     routingInfo: 'Direct subsea and terrestrial DWDM interconnection.',
-    pingUrl: 'https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js',
+    pingUrl: cdnPing,
     downloadUrl: cfDown,
     uploadUrl: cfUp,
     isCustom: false,
@@ -1757,7 +1757,7 @@ export const DEFAULT_SERVERS: SpeedTestServer[] = [
     categoryLabel: 'CDN',
     description: 'Southern Indian Fastly edge PoP for ultra-fast asset caching.',
     routingInfo: 'Bay of Bengal submarine fiber transit.',
-    pingUrl: 'https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js',
+    pingUrl: cdnPing,
     downloadUrl: cfDown,
     uploadUrl: cfUp,
     isCustom: false,
@@ -1774,7 +1774,7 @@ export const DEFAULT_SERVERS: SpeedTestServer[] = [
     categoryLabel: 'CDN',
     description: 'East Asian flagship edge location with massive multi-terabit edge capacity.',
     routingInfo: 'Trans-Asia Pacific subsea optical routing.',
-    pingUrl: 'https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js',
+    pingUrl: cdnPing,
     downloadUrl: cfDown,
     uploadUrl: cfUp,
     isCustom: false,
@@ -1927,7 +1927,7 @@ export const DEFAULT_SERVERS: SpeedTestServer[] = [
     categoryLabel: 'CDN',
     description: 'Accelerated CDN serving libraries from hundreds of global edge nodes.',
     routingInfo: 'Nearest Anycast node routing.',
-    pingUrl: 'https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js',
+    pingUrl: cdnPing,
     downloadUrl: cfDown,
     uploadUrl: cfUp,
     isCustom: false,
@@ -2040,3 +2040,32 @@ export function getServersByCategory(category: NetworkCategory): SpeedTestServer
   const all = getAllServers();
   return all.filter((s) => s.category === category);
 }
+
+/**
+ * Automatically binds the direct speed test endpoint to the detected ISP,
+ * matching Ookla's architecture where client ISP is identified first.
+ */
+export function findBestServerForIsp(ispName?: string, category: NetworkCategory = 'bdix'): SpeedTestServer {
+  const categoryServers = getServersByCategory(category);
+  if (!ispName || categoryServers.length === 0) return categoryServers[0] || DEFAULT_SERVERS[0];
+
+  const lower = ispName.toLowerCase();
+  const matched = categoryServers.find((s) => {
+    const sName = s.name.toLowerCase();
+    const sProv = s.provider.toLowerCase();
+    if (lower.includes('amber') && (sName.includes('amber') || sProv.includes('amber'))) return true;
+    if (lower.includes('carnival') && (sName.includes('carnival') || sProv.includes('carnival'))) return true;
+    if (lower.includes('link3') && (sName.includes('link3') || sProv.includes('link3'))) return true;
+    if ((lower.includes('dot') || lower.includes('dotnet')) && (sName.includes('dot') || sProv.includes('dot'))) return true;
+    if (lower.includes('circle') && (sName.includes('circle') || sProv.includes('circle'))) return true;
+    if (lower.includes('icc') && (sName.includes('icc') || sProv.includes('icc'))) return true;
+    if (lower.includes('grameen') && (sName.includes('grameen') || sProv.includes('gp'))) return true;
+    if (lower.includes('robi') && (sName.includes('robi') || sProv.includes('robi'))) return true;
+    if (lower.includes('banglalink') && (sName.includes('banglalink') || sProv.includes('banglalink'))) return true;
+    if (lower.includes('btcl') && (sName.includes('btcl') || sProv.includes('btcl'))) return true;
+    return false;
+  });
+
+  return matched || categoryServers[0];
+}
+

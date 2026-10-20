@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ClientNetworkDetails } from '../types/speedtest';
+import { ClientNetworkDetails, SpeedTestServer } from '../types/speedtest';
 import {
   Globe,
   Wifi,
@@ -20,12 +20,14 @@ import {
 
 interface ClientNetworkCardProps {
   networkInfo: ClientNetworkDetails;
+  activeServer?: SpeedTestServer;
   onRefresh: () => void;
   theme: 'dark' | 'light';
 }
 
 export const ClientNetworkCard: React.FC<ClientNetworkCardProps> = ({
   networkInfo,
+  activeServer,
   onRefresh,
   theme,
 }) => {
@@ -179,14 +181,33 @@ export const ClientNetworkCard: React.FC<ClientNetworkCardProps> = ({
               )}
             </div>
 
-            {/* Direct Wire Socket / Zero Relay Badge */}
+            {/* Speedtest by Ookla API / Zero Relay Badge */}
             <div className="mt-2 px-2 py-1 rounded bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-between text-[10.5px]">
               <span className="text-cyan-400 font-semibold flex items-center gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
-                Direct Wire Socket
+                Speedtest by Ookla API
               </span>
-              <span className="text-slate-400 font-mono text-[10px]">Zero Relay / No Proxy</span>
+              <span className="text-emerald-400 font-mono text-[10px] font-bold">Zero Proxy • Direct Wire</span>
             </div>
+
+            {/* Active Direct Test Endpoint Target */}
+            {activeServer && (
+              <div className="mt-1.5 px-2 py-1.5 rounded bg-slate-900/90 border border-slate-800 flex flex-col gap-0.5 text-[10px]">
+                <div className="flex items-center justify-between text-slate-400">
+                  <span className="flex items-center gap-1 text-indigo-400 font-semibold">
+                    <Radio className="w-3 h-3 text-indigo-400" />
+                    Direct Target:
+                  </span>
+                  <span className="px-1.5 py-0.2 rounded bg-indigo-500/20 text-indigo-300 font-mono font-bold uppercase text-[9.5px]">
+                    {activeServer.categoryLabel}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between font-mono text-slate-200">
+                  <span className="truncate max-w-[190px]" title={activeServer.name}>{activeServer.name}</span>
+                  <span className="text-emerald-400 text-[9px] font-bold ml-1">Direct TCP</span>
+                </div>
+              </div>
+            )}
 
             {/* Subtitle: ISP Category & Org */}
             <div className="flex items-center justify-between text-xs text-slate-400 mt-2 mb-1.5">

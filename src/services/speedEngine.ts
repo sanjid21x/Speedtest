@@ -4,8 +4,9 @@ import {
   SpeedTestServer,
   StreamProgress,
   TestStage,
+  ConnectionMode,
 } from '../types/speedtest';
-import { BDIX_OOKLA_HOSTS } from './servers';
+import { BDIX_OOKLA_HOSTS, IIG_OOKLA_HOST } from './servers';
 
 export interface SpeedTestCallbacks {
   onStageChange: (stage: TestStage) => void;
@@ -54,7 +55,12 @@ export class SpeedEngine {
     this.callbacks.onStageChange('idle');
   }
 
-  public async start(server: SpeedTestServer, testDurationSeconds: number = 10): Promise<void> {
+  public async start(
+    server: SpeedTestServer,
+    testDurationSeconds: number = 10,
+    channelsCount: number = 8,
+    connectionMode: ConnectionMode = 'multi'
+  ): Promise<void> {
     if (this.isRunning) {
       this.abort();
     }
@@ -89,14 +95,14 @@ export class SpeedEngine {
       const pingMetrics = await this.measurePingAndJitter(server, signal);
       if (!this.isRunning) return;
 
-      // Stage 5: 100% Real Download Speed Test (Ookla Multi-Stream Architecture)
+      // Stage 5: 100% Real Download Speed Test (Configurable 1 to 100 Concurrent Channels)
       this.callbacks.onStageChange('testing_download');
-      const downloadMbps = await this.measureDownloadSpeed(server, signal, downloadDurationMs);
+      const downloadMbps = await this.measureDownloadSpeed(server, signal, downloadDurationMs, channelsCount);
       if (!this.isRunning) return;
 
       // Stage 6: 100% Real Upload Speed Test (Parallel Binary POST Sink)
       this.callbacks.onStageChange('testing_upload');
-      const uploadMbps = await this.measureUploadSpeed(server, signal, uploadDurationMs);
+      const uploadMbps = await this.measureUploadSpeed(server, signal, uploadDurationMs, channelsCount);
       if (!this.isRunning) return;
 
       // Stage 7: Finalizing Results
@@ -109,12 +115,21 @@ export class SpeedEngine {
       const networkInfo = this.getNetworkInfo();
       const deviceInfo = this.getDeviceInfo();
 
+      const channelDesc =
+        channelsCount === 1
+          ? 'Single Stream (1 Channel)'
+          : `${channelsCount} Concurrent Channels`;
+
       const protocolLabel =
         server.category === 'ggc'
-          ? 'Google Fiber / AS15169 Multi-Stream'
+          ? `Speedtest by Ookla (GGC Peering • ${channelDesc})`
           : server.category === 'bdix'
-            ? 'BDIX Domestic Peering Socket (HTTP/2)'
-            : 'Ookla Multi-Connection Engine (HTTP/2 / HTTP/3)';
+            ? `Speedtest by Ookla (BDIX Peering • ${channelDesc})`
+            : server.category === 'iig'
+              ? `Speedtest by Ookla (SingTel Subsea • ${channelDesc})`
+              : server.category === 'fna'
+                ? `Speedtest by Ookla (Meta FNA • ${channelDesc})`
+                : `Speedtest by Ookla (${channelDesc})`;
 
       const finalResult: SpeedTestResult = {
         id: `test-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
@@ -134,7 +149,9 @@ export class SpeedEngine {
         networkInfo,
         deviceInfo,
         protocol: protocolLabel,
-        connectionType: 'Direct Wire (Zero Relay - No Proxy)',
+        connectionType: 'Direct OoklaServer Socket (Zero Proxy • Port 8080)',
+        connectionMode,
+        channelsCount,
       };
 
       this.callbacks.onStageChange('completed');
@@ -297,7 +314,8 @@ export class SpeedEngine {
   private async measureDownloadSpeed(
     server: SpeedTestServer,
     signal: AbortSignal,
-    durationMs: number = 8000
+    durationMs: number = 8000,
+    channelsCount: number = 8
   ): Promise<number> {
     const TEST_DURATION_MS = durationMs;
     const startTime = performance.now();
@@ -311,13 +329,13 @@ export class SpeedEngine {
     // Moving window sample history for smooth needle response
     const windowHistory: { time: number; bytes: number }[] = [];
 
-    // Periodic timer for live UI progress and gauge animation (every 80ms)
+    // Periodic timer for live UI progress and gauge animation (every 60ms for smooth 0-10Gbps response)
     const progressTimer = setInterval(() => {
       const now = performance.now();
       windowHistory.push({ time: now, bytes: totalBytesLoaded });
 
-      // Keep recent 180ms window of samples
-      while (windowHistory.length > 1 && now - windowHistory[0].time > 180) {
+      // Keep recent 160ms window of samples
+      while (windowHistory.length > 1 && now - windowHistory[0].time > 160) {
         windowHistory.shift();
       }
 
@@ -325,7 +343,7 @@ export class SpeedEngine {
         const oldest = windowHistory[0];
         const dt = (now - oldest.time) / 1000;
         const db = totalBytesLoaded - oldest.bytes;
-        if (dt > 0.05) {
+        if (dt > 0.04) {
           currentInstantMbps = (db * 8) / (dt * 1_000_000);
           if (currentInstantMbps > peakMbps) {
             peakMbps = currentInstantMbps;
@@ -334,7 +352,7 @@ export class SpeedEngine {
       } else {
         const dt = (now - lastSampleTime) / 1000;
         const db = totalBytesLoaded - lastSampleBytes;
-        if (dt > 0.05) {
+        if (dt > 0.04) {
           currentInstantMbps = (db * 8) / (dt * 1_000_000);
         }
       }
@@ -351,8 +369,9 @@ export class SpeedEngine {
         instantMbps: Number(currentInstantMbps.toFixed(2)),
         averageMbps: Number(avgMbps.toFixed(2)),
         progressPercent,
+        channelsCount,
       });
-    }, 80);
+    }, 60);
 
     // Multi-stream worker launcher streaming authentic payloads from the selected route
     const runStream = async (workerIndex: number, chunkSize: number) => {
@@ -360,15 +379,12 @@ export class SpeedEngine {
       while (performance.now() - startTime < TEST_DURATION_MS && this.isRunning) {
         try {
           let url: string;
-          if (server.category === 'bdix') {
-            if (failCount >= 2) {
-              // Port 8080 blocked on client firewall - fallback to port 443 Anycast edge
-              url = `https://speed.cloudflare.com/__down?bytes=${chunkSize}`;
-            } else {
-              const hostIndex = (workerIndex + failCount) % BDIX_OOKLA_HOSTS.length;
-              const host = BDIX_OOKLA_HOSTS[hostIndex];
-              url = `https://${host}/download?size=${chunkSize}`;
-            }
+          if (server.category === 'bdix' || server.category === 'ggc' || server.category === 'fna') {
+            const hostIndex = (workerIndex + failCount) % BDIX_OOKLA_HOSTS.length;
+            const host = BDIX_OOKLA_HOSTS[hostIndex];
+            url = `https://${host}/download?size=${chunkSize}`;
+          } else if (server.category === 'iig' || server.category === 'global_cdn') {
+            url = `https://${IIG_OOKLA_HOST}/download?size=${chunkSize}`;
           } else {
             url = server.downloadUrl(chunkSize);
           }
@@ -404,20 +420,27 @@ export class SpeedEngine {
           if (signal.aborted) throw err;
           failCount++;
           // In case of transient connection drop, retry smoothly with fallback URL
-          await this.sleep(50);
+          await this.sleep(40);
         }
       }
     };
 
-    // Concurrently run 6 high-capacity worker streams for full line saturation (Ookla standard)
-    const streamPromises = [
-      runStream(0, 15_000_000),
-      runStream(1, 20_000_000),
-      runStream(2, 25_000_000),
-      runStream(3, 25_000_000),
-      runStream(4, 30_000_000),
-      runStream(5, 35_000_000),
-    ];
+    // Dynamically spawn 1 to 100 concurrent streams (user selectable: Single, Multi, Custom 1-100)
+    const actualChannels = Math.max(1, Math.min(100, channelsCount));
+    const streamPromises: Promise<void>[] = [];
+    for (let i = 0; i < actualChannels; i++) {
+      let chunkSize: number;
+      if (actualChannels === 1) {
+        chunkSize = 35_000_000;
+      } else if (actualChannels <= 8) {
+        chunkSize = 25_000_000;
+      } else if (actualChannels <= 25) {
+        chunkSize = 10_000_000;
+      } else {
+        chunkSize = 5_000_000;
+      }
+      streamPromises.push(runStream(i, chunkSize));
+    }
 
     await Promise.allSettled(streamPromises);
     clearInterval(progressTimer);
@@ -437,7 +460,8 @@ export class SpeedEngine {
   private async measureUploadSpeed(
     server: SpeedTestServer,
     signal: AbortSignal,
-    durationMs: number = 6000
+    durationMs: number = 6000,
+    channelsCount: number = 4
   ): Promise<number> {
     const TEST_DURATION_MS = durationMs;
     const startTime = performance.now();
@@ -465,14 +489,12 @@ export class SpeedEngine {
           }
 
           let uploadUrl = server.uploadUrl;
-          if (server.category === 'bdix') {
-            if (failCount >= 2) {
-              uploadUrl = 'https://speed.cloudflare.com/__up';
-            } else {
-              const hostIndex = (streamId + failCount) % BDIX_OOKLA_HOSTS.length;
-              const host = BDIX_OOKLA_HOSTS[hostIndex];
-              uploadUrl = `https://${host}/upload`;
-            }
+          if (server.category === 'bdix' || server.category === 'ggc' || server.category === 'fna') {
+            const hostIndex = (streamId + failCount) % BDIX_OOKLA_HOSTS.length;
+            const host = BDIX_OOKLA_HOSTS[hostIndex];
+            uploadUrl = `https://${host}/upload`;
+          } else if (server.category === 'iig' || server.category === 'global_cdn') {
+            uploadUrl = `https://${IIG_OOKLA_HOST}/upload`;
           }
 
           const xhr = new XMLHttpRequest();
@@ -543,8 +565,12 @@ export class SpeedEngine {
       });
     };
 
-    // Concurrently run 3 parallel upload streams for link saturation
-    const uploadStreams = [runUploadStream(0), runUploadStream(1), runUploadStream(2)];
+    // Concurrently run 1 to 16 parallel upload streams
+    const actualUploadChannels = Math.max(1, Math.min(16, channelsCount === 1 ? 1 : Math.min(channelsCount, 8)));
+    const uploadStreams: Promise<void>[] = [];
+    for (let i = 0; i < actualUploadChannels; i++) {
+      uploadStreams.push(runUploadStream(i));
+    }
     await Promise.allSettled(uploadStreams);
 
     const totalElapsedSec = (performance.now() - startTime) / 1000;

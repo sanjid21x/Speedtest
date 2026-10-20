@@ -14,9 +14,10 @@ import {
   SpeedUnit,
   TestDurationOption,
   ClientNetworkDetails,
+  ConnectionMode,
 } from './types/speedtest';
 import { SpeedEngine } from './services/speedEngine';
-import { getActiveServer } from './services/servers';
+import { getActiveServer, findBestServerForIsp, setSelectedServerId } from './services/servers';
 import { getHistory, saveResultToHistory } from './services/history';
 import { fetchClientNetworkInfo } from './services/networkInfo';
 import { SpeedGauge } from './components/SpeedGauge';
@@ -132,6 +133,12 @@ export default function App() {
     setClientNetwork((prev) => ({ ...prev, isLoading: true }));
     const details = await fetchClientNetworkInfo();
     setClientNetwork(details);
+    if (details.isp && details.isp !== 'Detecting ISP...') {
+      // Like Ookla Speedtest: automatically select the direct endpoint for client ISP
+      const bestServer = findBestServerForIsp(details.isp);
+      setActiveServer(bestServer);
+      setSelectedServerId(bestServer.id);
+    }
   };
 
   useEffect(() => {
@@ -143,6 +150,8 @@ export default function App() {
 
   // Engine state
   const [stage, setStage] = useState<TestStage>('idle');
+  const [connectionMode, setConnectionMode] = useState<ConnectionMode>('multi');
+  const [channelsCount, setChannelsCount] = useState<number>(8);
   const [currentLiveValue, setCurrentLiveValue] = useState<number>(0);
   const [pingValue, setPingValue] = useState<number>(0);
   const [jitterValue, setJitterValue] = useState<number>(0);
@@ -212,7 +221,7 @@ export default function App() {
     setUploadValue(0);
     setLatestResult(null);
 
-    engineRef.current?.start(activeServer, testDuration);
+    engineRef.current?.start(activeServer, testDuration, channelsCount, connectionMode);
   };
 
   const handleStop = () => {
@@ -349,6 +358,10 @@ export default function App() {
             onToggleUnit={toggleSpeedUnit}
             duration={testDuration}
             onChangeDuration={handleDurationChange}
+            connectionMode={connectionMode}
+            onChangeConnectionMode={setConnectionMode}
+            channelsCount={channelsCount}
+            onChangeChannelsCount={setChannelsCount}
             onStart={handleStart}
             onStop={handleStop}
             onRestart={handleRestart}
@@ -446,6 +459,7 @@ export default function App() {
         <div className="w-full max-w-3xl">
           <ClientNetworkCard
             networkInfo={clientNetwork}
+            activeServer={activeServer}
             onRefresh={loadNetworkDetails}
             theme={activeTheme}
           />
