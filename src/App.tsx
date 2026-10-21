@@ -26,6 +26,7 @@ import { TestHistory } from './components/TestHistory';
 import { ServerSelector } from './components/ServerSelector';
 import { NetworkRouteSelector } from './components/NetworkRouteSelector';
 import { ClientNetworkCard } from './components/ClientNetworkCard';
+import { DnsSpeedTester } from './components/DnsSpeedTester';
 import { GamePingTester } from './components/GamePingTester';
 import { ThemeToggle } from './components/ThemeToggle';
 import { SplashScreen } from './components/SplashScreen';
@@ -473,6 +474,11 @@ export default function App() {
             <ResultCard result={latestResult} unit={speedUnit} theme={activeTheme} />
           </div>
         )}
+
+        {/* DNS Speed & Resolution Benchmark (23 Top DNS & Current Active DNS Status) */}
+        <div className="w-full max-w-2xl">
+          <DnsSpeedTester clientNetwork={clientNetwork} theme={activeTheme} />
+        </div>
 
         {/* Dedicated Game Ping Tester Section (PUBG, eFootball, Valorant, CoD, Free Fire, Valve) */}
         <div className="w-full max-w-2xl">

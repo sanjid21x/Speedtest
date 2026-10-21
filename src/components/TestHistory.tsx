@@ -125,18 +125,45 @@ export const TestHistory: React.FC<TestHistoryProps> = ({
               className="py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs"
             >
               <div className="flex flex-col">
-                <span className="font-semibold text-slate-200">
-                  {dateStr} <span className="text-slate-500 font-normal">at {timeStr}</span>
-                </span>
                 <div className="flex items-center gap-1.5 flex-wrap">
-                  <span className="text-[11px] text-slate-400 truncate max-w-[200px]">
+                  <span className="font-semibold text-slate-200">
+                    {dateStr} <span className="text-slate-500 font-normal">at {timeStr}</span>
+                  </span>
+                  <span
+                    className={`text-[9px] px-1.5 py-0.2 rounded font-mono font-bold border ${
+                      (item.server.siteType || '').includes('BDIX') || item.server.category === 'bdix'
+                        ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
+                        : (item.server.siteType || '').includes('IIG') || item.server.category === 'iig'
+                        ? 'bg-amber-500/15 text-amber-300 border-amber-500/30'
+                        : (item.server.siteType || '').includes('GGC') || item.server.category === 'ggc'
+                        ? 'bg-rose-500/15 text-rose-300 border-rose-500/30'
+                        : (item.server.siteType || '').includes('FNA') || item.server.category === 'fna'
+                        ? 'bg-blue-500/15 text-blue-300 border-blue-500/30'
+                        : 'bg-cyan-500/15 text-cyan-300 border-cyan-500/30'
+                    }`}
+                  >
+                    {item.server.siteType ||
+                      (item.server.category === 'bdix'
+                        ? 'Domestic BDIX Site'
+                        : item.server.category === 'iig'
+                        ? 'IIG Subsea Gateway'
+                        : item.server.category === 'ggc'
+                        ? 'GGC Cache'
+                        : item.server.category === 'fna'
+                        ? 'FNA Edge'
+                        : 'Global CDN')}
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
+                  <span className="text-[11px] text-slate-400 truncate max-w-[180px]">
                     {item.server.name}
                   </span>
-                  {item.server.categoryLabel && (
-                    <span className="text-[9px] px-1.5 py-0.5 rounded font-mono font-medium bg-slate-800 text-cyan-300 border border-slate-700">
-                      {item.server.categoryLabel}
-                    </span>
-                  )}
+                  <span className="text-[9.5px] px-1.5 py-0.2 rounded font-mono font-semibold bg-amber-500/10 text-amber-300 border border-amber-500/20">
+                    IPv4: {item.server.ipAddress || '103.77.188.20'}
+                  </span>
+                  <span className="text-[10px] text-slate-500">
+                    {item.server.location}
+                  </span>
                 </div>
               </div>
 

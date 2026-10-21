@@ -40,6 +40,10 @@ export interface SpeedTestServer {
   isCustom?: boolean;
   routingInfo?: string;
   flag?: string;
+  ipAddress?: string;
+  siteType?: 'Domestic BDIX Site' | 'IIG Submarine Gateway' | 'GGC ISP Cache Edge' | 'FNA Meta Peering Edge' | 'Global Anycast CDN';
+  transitDetails?: string;
+  ipv4Only?: boolean;
 }
 
 export interface LatencyMetrics {
@@ -71,6 +75,10 @@ export interface SpeedTestResult {
     location: string;
     category?: NetworkCategory;
     categoryLabel?: string;
+    ipAddress?: string;
+    siteType?: string;
+    transitDetails?: string;
+    ipv4Only?: boolean;
   };
   durationSeconds: number;
   networkInfo?: {
@@ -145,3 +153,40 @@ export interface GameServerEndpoint {
 }
 
 export type ThemeMode = 'dark' | 'light' | 'system';
+
+export type DnsCategory = 'all' | 'security' | 'privacy' | 'adblock' | 'domestic' | 'global';
+
+export interface DnsServerEndpoint {
+  id: string;
+  name: string;
+  provider: string;
+  primaryIp: string;
+  secondaryIp?: string;
+  category: DnsCategory;
+  categoryLabel: string;
+  features: string[];
+  probeUrl: string;
+  dohSupported: boolean;
+  latencyMs?: number;
+  jitterMs?: number;
+  status?: 'idle' | 'testing' | 'success' | 'failed';
+  rating?: 'elite' | 'great' | 'fair' | 'slow';
+  flag?: string;
+  location?: string;
+}
+
+export interface CurrentDnsInfo {
+  name: string;
+  provider: string;
+  ip: string;
+  stability: string;
+  stabilityScore: number;
+  jitterMs: number;
+  packetLossPercent: number;
+  averageLatencyMs: number;
+  status: 'idle' | 'testing' | 'ready';
+  currentPingMs?: number;
+  currentJitterMs?: number;
+  livePingHistory?: number[];
+  monitoringActive?: boolean;
+}

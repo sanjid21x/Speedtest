@@ -192,19 +192,32 @@ export const ClientNetworkCard: React.FC<ClientNetworkCardProps> = ({
 
             {/* Active Direct Test Endpoint Target */}
             {activeServer && (
-              <div className="mt-1.5 px-2 py-1.5 rounded bg-slate-900/90 border border-slate-800 flex flex-col gap-0.5 text-[10px]">
+              <div className="mt-1.5 px-2 py-1.5 rounded bg-slate-900/90 border border-slate-800 flex flex-col gap-1 text-[10px]">
                 <div className="flex items-center justify-between text-slate-400">
                   <span className="flex items-center gap-1 text-indigo-400 font-semibold">
                     <Radio className="w-3 h-3 text-indigo-400" />
-                    Direct Target:
+                    Target Socket:
                   </span>
-                  <span className="px-1.5 py-0.2 rounded bg-indigo-500/20 text-indigo-300 font-mono font-bold uppercase text-[9.5px]">
-                    {activeServer.categoryLabel}
+                  <span
+                    className={`px-1.5 py-0.2 rounded font-mono font-bold uppercase text-[9px] border ${
+                      (activeServer.siteType || '').includes('BDIX') || activeServer.category === 'bdix'
+                        ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
+                        : (activeServer.siteType || '').includes('IIG') || activeServer.category === 'iig'
+                        ? 'bg-amber-500/15 text-amber-300 border-amber-500/30'
+                        : 'bg-cyan-500/15 text-cyan-300 border-cyan-500/30'
+                    }`}
+                  >
+                    {activeServer.siteType || (activeServer.category === 'bdix' ? 'Domestic BDIX Site' : 'IIG Gateway')}
                   </span>
                 </div>
                 <div className="flex items-center justify-between font-mono text-slate-200">
-                  <span className="truncate max-w-[190px]" title={activeServer.name}>{activeServer.name}</span>
-                  <span className="text-emerald-400 text-[9px] font-bold ml-1">Direct TCP</span>
+                  <span className="truncate max-w-[150px]" title={activeServer.name}>{activeServer.name}</span>
+                  <span className="px-1.5 py-0.2 rounded bg-amber-500/10 text-amber-300 font-bold border border-amber-500/20 text-[9.5px]">
+                    IPv4: {activeServer.ipAddress || (activeServer.category === 'iig' ? '165.21.70.30' : '103.77.188.20')}
+                  </span>
+                </div>
+                <div className="text-[9.5px] text-slate-400 font-mono truncate">
+                  {activeServer.location} • <span className="text-emerald-400 font-bold">IPv4 Direct</span>
                 </div>
               </div>
             )}

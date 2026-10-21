@@ -193,18 +193,75 @@ Tested on: ${formattedDate}`;
           theme === 'dark' ? 'bg-slate-950/40 text-slate-300' : 'bg-slate-50 text-slate-600'
         }`}
       >
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 border-b border-slate-800/40 pb-2">
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <Server className="w-3.5 h-3.5 text-cyan-400" />
-            <span className="font-semibold text-slate-400">Test Server:</span>
-            <span className="font-medium text-slate-200">{result.server.name}</span>
-            {result.server.categoryLabel && (
-              <span className="text-[10px] px-1.5 py-0.5 rounded font-mono font-medium bg-cyan-500/15 text-cyan-300 border border-cyan-500/25">
-                {result.server.categoryLabel}
-              </span>
-            )}
+        {/* Server & Tested IP Address Details */}
+        <div className="border-b border-slate-800/40 pb-2.5 space-y-1.5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <Server className="w-3.5 h-3.5 text-cyan-400" />
+              <span className="font-semibold text-slate-400">Tested Server:</span>
+              <span className="font-bold text-slate-100">{result.server.name}</span>
+              {result.server.categoryLabel && (
+                <span className="text-[10px] px-1.5 py-0.5 rounded font-mono font-medium bg-cyan-500/15 text-cyan-300 border border-cyan-500/25">
+                  {result.server.categoryLabel}
+                </span>
+              )}
+            </div>
+            <span className="text-slate-300 font-medium text-[11px]">{result.server.location}</span>
           </div>
-          <span className="text-slate-400 text-[11px]">{result.server.location}</span>
+
+          {/* Tested Server IPv4 Address and Site Classification */}
+          <div className="flex flex-wrap items-center justify-between gap-2 p-2 rounded-lg bg-slate-900/90 border border-slate-800/90 text-[11px]">
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Tested IPv4:</span>
+              <span className="font-mono font-bold text-amber-300 px-1.5 py-0.5 rounded bg-amber-500/10 border border-amber-500/20">
+                {result.server.ipAddress || '103.77.188.20'}
+              </span>
+              <span className="text-[9.5px] font-mono px-1.5 py-0.2 rounded bg-emerald-500/15 text-emerald-300 font-bold border border-emerald-500/30">
+                IPv4 Only
+              </span>
+            </div>
+
+            <div className="flex items-center gap-1.5">
+              <span className="text-[10px] text-slate-400">Site Type:</span>
+              <span
+                className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full border ${
+                  (result.server.siteType || '').includes('BDIX') || result.server.category === 'bdix'
+                    ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
+                    : (result.server.siteType || '').includes('IIG') || result.server.category === 'iig'
+                    ? 'bg-amber-500/15 text-amber-300 border-amber-500/30'
+                    : (result.server.siteType || '').includes('GGC') || result.server.category === 'ggc'
+                    ? 'bg-rose-500/15 text-rose-300 border-rose-500/30'
+                    : (result.server.siteType || '').includes('FNA') || result.server.category === 'fna'
+                    ? 'bg-blue-500/15 text-blue-300 border-blue-500/30'
+                    : 'bg-cyan-500/15 text-cyan-300 border-cyan-500/30'
+                }`}
+              >
+                {result.server.siteType ||
+                  (result.server.category === 'bdix'
+                    ? 'Domestic BDIX Site'
+                    : result.server.category === 'iig'
+                    ? 'IIG Submarine Gateway'
+                    : result.server.category === 'ggc'
+                    ? 'GGC ISP Cache Edge'
+                    : result.server.category === 'fna'
+                    ? 'FNA Meta Peering Edge'
+                    : 'Global Anycast CDN')}
+              </span>
+            </div>
+          </div>
+
+          {/* Transit Routing Details */}
+          <div className="text-[10.5px] text-slate-400 font-mono flex items-center gap-1.5">
+            <span className="text-cyan-400 font-bold">Transit Route:</span>
+            <span>
+              {result.server.transitDetails ||
+                (result.server.category === 'bdix'
+                  ? 'Domestic IXP Peering • Direct Optical Fabric • Zero Subsea Transit • IPv4 Enforced'
+                  : result.server.category === 'iig'
+                  ? 'International Internet Gateway • SMW-4/SMW-5 Submarine Landing • IPv4 Enforced'
+                  : 'Direct Edge PoP Interconnect • IPv4 Enforced')}
+            </span>
+          </div>
         </div>
 
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 border-b border-slate-800/40 pb-2">

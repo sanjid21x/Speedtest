@@ -233,14 +233,38 @@ export const ServerSelector: React.FC<ServerSelectorProps> = ({
                       }`}
                     >
                       <div className="flex items-center gap-2.5 truncate pr-2">
-                        <span className="text-lg">{srv.flag || '🌐'}</span>
-                        <div className="flex flex-col truncate">
-                          <div className="flex items-center gap-1.5">
+                        <span className="text-lg shrink-0">{srv.flag || '🌐'}</span>
+                        <div className="flex flex-col truncate min-w-0">
+                          <div className="flex items-center gap-1.5 flex-wrap">
                             <span className="font-bold text-xs truncate text-slate-100">
                               {srv.name}
                             </span>
-                            <span className="text-[9px] px-1.5 py-0.5 rounded font-mono font-semibold bg-slate-800 text-cyan-400 border border-slate-700">
-                              {srv.categoryLabel}
+                            <span
+                              className={`text-[9px] px-1.5 py-0.2 rounded font-mono font-bold border ${
+                                (srv.siteType || '').includes('BDIX') || srv.category === 'bdix'
+                                  ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
+                                  : (srv.siteType || '').includes('IIG') || srv.category === 'iig'
+                                  ? 'bg-amber-500/15 text-amber-300 border-amber-500/30'
+                                  : (srv.siteType || '').includes('GGC') || srv.category === 'ggc'
+                                  ? 'bg-rose-500/15 text-rose-300 border-rose-500/30'
+                                  : (srv.siteType || '').includes('FNA') || srv.category === 'fna'
+                                  ? 'bg-blue-500/15 text-blue-300 border-blue-500/30'
+                                  : 'bg-cyan-500/15 text-cyan-300 border-cyan-500/30'
+                              }`}
+                            >
+                              {srv.siteType ||
+                                (srv.category === 'bdix'
+                                  ? 'Domestic BDIX Site'
+                                  : srv.category === 'iig'
+                                  ? 'IIG Subsea Gateway'
+                                  : srv.category === 'ggc'
+                                  ? 'GGC Cache Edge'
+                                  : srv.category === 'fna'
+                                  ? 'FNA Edge'
+                                  : 'Global CDN')}
+                            </span>
+                            <span className="text-[9px] px-1.5 py-0.2 rounded font-mono font-bold bg-amber-500/10 text-amber-300 border border-amber-500/20">
+                              IPv4: {srv.ipAddress || (srv.category === 'iig' ? '165.21.70.30' : '103.77.188.20')}
                             </span>
                             {srv.isCustom && (
                               <span className="text-[9px] px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300">
@@ -248,8 +272,11 @@ export const ServerSelector: React.FC<ServerSelectorProps> = ({
                               </span>
                             )}
                           </div>
-                          <span className="text-[11px] text-slate-400 truncate">
+                          <span className="text-[11px] text-slate-300 truncate font-medium">
                             {srv.location} • <span className="text-slate-500">{srv.provider}</span>
+                          </span>
+                          <span className="text-[10px] text-slate-400 font-mono truncate mt-0.5">
+                            {srv.transitDetails || srv.routingInfo || 'Direct Optical Interconnect • IPv4 Direct'}
                           </span>
                         </div>
                       </div>

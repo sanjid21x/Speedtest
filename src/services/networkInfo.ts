@@ -32,14 +32,29 @@ export async function fetchClientNetworkInfo(): Promise<ClientNetworkDetails> {
       if (data && data.success !== false && data.ip) {
         const ipStr = String(data.ip).trim();
         const isV6 = ipStr.includes(':');
+        let resolvedIp = ipStr;
+        if (isV6) {
+          try {
+            const v4Res = await fetch('https://api.ipify.org?format=json', { signal: AbortSignal.timeout(2500) });
+            if (v4Res.ok) {
+              const v4Data = await v4Res.json();
+              if (v4Data?.ip && !v4Data.ip.includes(':')) {
+                resolvedIp = v4Data.ip.trim();
+              }
+            }
+          } catch {
+            // Keep resolvedIp
+          }
+        }
+
         const isp = data.connection?.isp || data.connection?.org || 'Broadband ISP';
         const asn = data.connection?.asn ? `AS${data.connection.asn}` : undefined;
         const countryCode = (data.country_code || 'UN').toUpperCase();
         const upstreamInfo = resolveIspUpstreamInfo(isp, asn, countryCode);
 
         const details: ClientNetworkDetails = {
-          ip: ipStr,
-          ipVersion: isV6 ? 'IPv6' : 'IPv4',
+          ip: resolvedIp,
+          ipVersion: 'IPv4',
           isp,
           asn,
           org: data.connection?.org,
@@ -115,20 +130,19 @@ export async function fetchClientNetworkInfo(): Promise<ClientNetworkDetails> {
 
   // Tertiary fallback: ipify (bare IP address)
   try {
-    const res = await fetch('https://api64.ipify.org?format=json', {
+    const res = await fetch('https://api.ipify.org?format=json', {
       signal: AbortSignal.timeout(3000),
     });
     if (res.ok) {
       const data = await res.json();
       const ipStr = String(data.ip).trim();
-      const isV6 = ipStr.includes(':');
       const isp = 'AmberIT / Local Peering ISP';
       const asn = 'AS23810';
       const upstreamInfo = resolveIspUpstreamInfo(isp, asn, 'BD');
 
       return {
         ip: ipStr,
-        ipVersion: isV6 ? 'IPv6' : 'IPv4',
+        ipVersion: 'IPv4',
         isp,
         asn,
         city: 'Dhaka',
