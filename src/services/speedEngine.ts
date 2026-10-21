@@ -333,13 +333,13 @@ export class SpeedEngine {
     // Moving window sample history for smooth needle response
     const windowHistory: { time: number; bytes: number }[] = [];
 
-    // Periodic timer for live UI progress and gauge animation (every 60ms for smooth 0-10Gbps response)
+    // Periodic timer for live UI progress and gauge animation (every 60ms with 500ms sliding EMA for silky smooth needle)
     const progressTimer = setInterval(() => {
       const now = performance.now();
       windowHistory.push({ time: now, bytes: totalBytesLoaded });
 
-      // Keep recent 160ms window of samples
-      while (windowHistory.length > 1 && now - windowHistory[0].time > 160) {
+      // Keep recent 500ms window of samples (eliminates TCP micro-packet jitter)
+      while (windowHistory.length > 1 && now - windowHistory[0].time > 500) {
         windowHistory.shift();
       }
 
@@ -347,8 +347,13 @@ export class SpeedEngine {
         const oldest = windowHistory[0];
         const dt = (now - oldest.time) / 1000;
         const db = totalBytesLoaded - oldest.bytes;
-        if (dt > 0.04) {
-          currentInstantMbps = (db * 8) / (dt * 1_000_000);
+        if (dt > 0.05) {
+          const rawInstant = (db * 8) / (dt * 1_000_000);
+          // Apply EMA filter (75% previous + 25% new) for rock-solid silky needle
+          currentInstantMbps = currentInstantMbps === 0
+            ? rawInstant
+            : currentInstantMbps * 0.75 + rawInstant * 0.25;
+
           if (currentInstantMbps > peakMbps) {
             peakMbps = currentInstantMbps;
           }
@@ -356,8 +361,11 @@ export class SpeedEngine {
       } else {
         const dt = (now - lastSampleTime) / 1000;
         const db = totalBytesLoaded - lastSampleBytes;
-        if (dt > 0.04) {
-          currentInstantMbps = (db * 8) / (dt * 1_000_000);
+        if (dt > 0.05) {
+          const rawInstant = (db * 8) / (dt * 1_000_000);
+          currentInstantMbps = currentInstantMbps === 0
+            ? rawInstant
+            : currentInstantMbps * 0.75 + rawInstant * 0.25;
         }
       }
 
@@ -377,7 +385,7 @@ export class SpeedEngine {
       });
     }, 60);
 
-    // Multi-stream worker launcher streaming authentic payloads from the selected route
+    // Multi-stream worker launcher streaming authentic 500MB continuous payloads (zero reconnect dips)
     const runStream = async (workerIndex: number, chunkSize: number) => {
       let failCount = 0;
       while (performance.now() - startTime < TEST_DURATION_MS && this.isRunning) {
@@ -423,27 +431,18 @@ export class SpeedEngine {
         } catch (err: any) {
           if (signal.aborted) throw err;
           failCount++;
-          // In case of transient connection drop, retry smoothly with fallback URL
           await this.sleep(40);
         }
       }
     };
 
-    // Dynamically spawn 1 to 100 concurrent streams (user selectable: Single, Multi, Custom 1-100)
+    // Dynamically spawn streams: each stream pulls 500 Megabytes (500,000,000 bytes) continuous stream
     const actualChannels = Math.max(1, Math.min(100, channelsCount));
     const streamPromises: Promise<void>[] = [];
+    const LARGE_PAYLOAD_500MB = 500_000_000; // 500 Megabytes requested by user
+
     for (let i = 0; i < actualChannels; i++) {
-      let chunkSize: number;
-      if (actualChannels === 1) {
-        chunkSize = 35_000_000;
-      } else if (actualChannels <= 8) {
-        chunkSize = 25_000_000;
-      } else if (actualChannels <= 25) {
-        chunkSize = 10_000_000;
-      } else {
-        chunkSize = 5_000_000;
-      }
-      streamPromises.push(runStream(i, chunkSize));
+      streamPromises.push(runStream(i, LARGE_PAYLOAD_500MB));
     }
 
     await Promise.allSettled(streamPromises);
@@ -471,10 +470,10 @@ export class SpeedEngine {
     const startTime = performance.now();
     let totalBytesUploaded = 0;
 
-    // 2MB random binary payload
-    const payloadSize = 2 * 1024 * 1024;
+    // 10MB random binary payload for uninterrupted sustained upload
+    const payloadSize = 10 * 1024 * 1024;
     const dummyPayload = new Uint8Array(payloadSize);
-    for (let i = 0; i < dummyPayload.length; i += 1024) {
+    for (let i = 0; i < dummyPayload.length; i += 2048) {
       dummyPayload[i] = (i * 31) % 256;
     }
     const blob = new Blob([dummyPayload], { type: 'application/octet-stream' });
@@ -506,7 +505,7 @@ export class SpeedEngine {
           lastReportedBytes = 0;
 
           xhr.open('POST', this.appendCacheBuster(uploadUrl), true);
-          xhr.timeout = 6000;
+          xhr.timeout = 8000;
 
           xhr.upload.onprogress = (event) => {
             if (!this.isRunning) return;
@@ -519,7 +518,11 @@ export class SpeedEngine {
             const elapsed = (performance.now() - startTime) / 1000;
             if (elapsed > 0.08) {
               const rawAvg = (totalBytesUploaded * 8) / (elapsed * 1_000_000);
-              currentInstantMbps = rawAvg;
+              // Apply smooth EMA filter on upload needle
+              currentInstantMbps = currentInstantMbps === 0
+                ? rawAvg
+                : currentInstantMbps * 0.78 + rawAvg * 0.22;
+
               const progressPercent = Math.min(
                 100,
                 Math.round(((performance.now() - startTime) / TEST_DURATION_MS) * 100)

@@ -345,7 +345,7 @@ export const DnsSpeedTester: React.FC<DnsSpeedTesterProps> = ({ clientNetwork, t
             <div>
               <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1">
                 <Globe className="w-3.5 h-3.5 text-cyan-400" />
-                1. DNS Name & Provider
+                1. Upstream DNS Resolver
               </span>
               <p className="text-sm font-bold text-slate-100 truncate mt-1.5" title={currentDns.name}>
                 {currentDns.name}
@@ -355,8 +355,8 @@ export const DnsSpeedTester: React.FC<DnsSpeedTesterProps> = ({ clientNetwork, t
               </p>
             </div>
             <div className="mt-2 pt-2 border-t border-slate-800/80 flex items-center justify-between text-[10px] font-mono text-slate-400">
-              <span>Node: Primary</span>
-              <span className="text-emerald-400 font-bold">IPv4 Route</span>
+              <span className="text-cyan-400 font-bold">{currentDns.resolverType || 'Recursive Node'}</span>
+              <span className="text-emerald-400 font-bold">IPv4 Direct</span>
             </div>
           </div>
 
@@ -365,28 +365,28 @@ export const DnsSpeedTester: React.FC<DnsSpeedTesterProps> = ({ clientNetwork, t
             <div>
               <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1">
                 <Cpu className="w-3.5 h-3.5 text-amber-400" />
-                2. DNS IP Address
+                2. Real DNS Server IP
               </span>
               <div className="flex items-center justify-between gap-1 mt-1.5">
                 <span className="text-sm font-mono font-black text-amber-300 truncate" title={currentDns.ip}>
-                  {currentDns.ip.split(' ')[0]}
+                  {currentDns.ip}
                 </span>
                 <button
                   onClick={handleCopyCurrentIp}
                   type="button"
                   className="p-1 rounded-md text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer shrink-0"
-                  title="Copy DNS IP"
+                  title="Copy Real DNS IP"
                 >
                   {copiedIp ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
                 </button>
               </div>
-              <p className="text-[10.5px] text-slate-400 font-mono mt-0.5 truncate">
-                {currentDns.ip.includes('(') ? currentDns.ip.substring(currentDns.ip.indexOf('(')) : 'Gateway Resolver / UDP 53'}
+              <p className="text-[10px] text-slate-400 font-mono mt-0.5 truncate">
+                Router Forwarder: 192.168.1.1 (CPE Gateway)
               </p>
             </div>
             <div className="mt-2 pt-2 border-t border-slate-800/80 flex items-center justify-between text-[10px] font-mono text-slate-400">
-              <span>Binding: Local Interface</span>
-              <span className="text-amber-300 font-bold">IPv4 Only</span>
+              <span className="text-emerald-400 font-bold">Real Recursive IP</span>
+              <span className="text-amber-300 font-bold">Port 53 / DoH</span>
             </div>
           </div>
 

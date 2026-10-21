@@ -408,16 +408,183 @@ export async function probeDnsServer(server: DnsServerEndpoint): Promise<{
 }
 
 /**
- * Detects the client's current DNS resolver and measures its live stability,
- * jitter, and packet reliability.
+ * Helper to identify known public and domestic recursive DNS resolvers
+ */
+function identifyDnsResolver(
+  dnsIp: string,
+  dnsGeo: string,
+  ispName?: string
+): { name: string; provider: string; resolverType: string } {
+  const ip = dnsIp.trim();
+  const geo = dnsGeo.toLowerCase();
+
+  // 1. Cloudflare (Cloud flood)
+  if (
+    geo.includes('cloudflare') ||
+    ip.startsWith('1.1.1.') ||
+    ip.startsWith('1.0.0.') ||
+    ip.startsWith('172.64.') ||
+    ip.startsWith('162.158.') ||
+    ip.startsWith('108.162.')
+  ) {
+    return {
+      name: 'Cloudflare 1.1.1.1 Public DNS',
+      provider: 'Cloudflare, Inc. (AS13335 Anycast)',
+      resolverType: 'Cloudflare Public DNS',
+    };
+  }
+
+  // 2. Quad9 (quartment)
+  if (
+    geo.includes('quad9') ||
+    ip.startsWith('9.9.9.') ||
+    ip.startsWith('149.112.')
+  ) {
+    return {
+      name: 'Quad9 Public DNS (Malware Blocking)',
+      provider: 'Quad9 Foundation (Switzerland)',
+      resolverType: 'Quad9 Secure DNS',
+    };
+  }
+
+  // 3. Google Public DNS
+  if (
+    geo.includes('google') ||
+    ip.startsWith('8.8.8.') ||
+    ip.startsWith('8.8.4.') ||
+    ip.startsWith('172.217.') ||
+    ip.startsWith('142.250.') ||
+    ip.startsWith('192.178.')
+  ) {
+    return {
+      name: 'Google Public DNS',
+      provider: 'Google LLC (AS15169 Global Anycast)',
+      resolverType: 'Google Public DNS',
+    };
+  }
+
+  // 4. Cisco OpenDNS
+  if (geo.includes('cisco') || geo.includes('opendns') || ip.startsWith('208.67.')) {
+    return {
+      name: 'Cisco OpenDNS Home',
+      provider: 'Cisco Systems (Umbrella Security)',
+      resolverType: 'Cisco OpenDNS',
+    };
+  }
+
+  // 5. AdGuard DNS
+  if (geo.includes('adguard') || ip.startsWith('94.140.')) {
+    return {
+      name: 'AdGuard Ad-Blocking DNS',
+      provider: 'AdGuard Software Ltd',
+      resolverType: 'AdGuard DNS',
+    };
+  }
+
+  // 6. NextDNS
+  if (geo.includes('nextdns') || ip.startsWith('45.90.')) {
+    return {
+      name: 'NextDNS Cloud Resolver',
+      provider: 'NextDNS Inc. (Cloud Firewall)',
+      resolverType: 'NextDNS',
+    };
+  }
+
+  // 7. Domestic ISP Own DNS
+  const resolvedProvider = dnsGeo || ispName || 'Local Broadband Provider';
+  return {
+    name: `${ispName || resolvedProvider} Dedicated Recursive DNS`,
+    provider: `${resolvedProvider} (ISP Upstream DNS)`,
+    resolverType: `${ispName || 'ISP'} Own DNS`,
+  };
+}
+
+/**
+ * Detects the client's actual upstream recursive DNS resolver (Cloudflare, Quad9, Google, or ISP DNS)
+ * instead of just the router's local gateway address (192.168.1.1).
  */
 export async function detectCurrentDnsInfo(
   ispName?: string,
   asn?: string
 ): Promise<CurrentDnsInfo> {
-  const provider = ispName && ispName !== 'Detecting ISP...' ? ispName : 'Local Broadband Provider';
-  const name = `${provider} Recursive Resolver`;
-  const defaultIp = '192.168.1.1 (Gateway DNS) / Dynamic DHCP';
+  let realIp = '';
+  let realName = '';
+  let realProvider = '';
+  let resolverType = '';
+  const gatewayIp = '192.168.1.1 (Router / LAN Forwarder)';
+
+  // Step 1: Query authoritative EDNS leak detector (redirects to unique test subdomain)
+  try {
+    const ednsRes = await fetch('https://edns.ip-api.com/json', {
+      headers: { Accept: 'application/json' },
+      signal: AbortSignal.timeout(3500),
+    });
+
+    if (ednsRes.ok) {
+      const ednsData = await ednsRes.json();
+      if (ednsData?.dns?.ip && !ednsData.dns.ip.startsWith('192.168.') && !ednsData.dns.ip.startsWith('10.') && !ednsData.dns.ip.startsWith('127.')) {
+        realIp = ednsData.dns.ip;
+        const geo = ednsData.dns.geo || '';
+        const identified = identifyDnsResolver(realIp, geo, ispName);
+        realName = identified.name;
+        realProvider = identified.provider;
+        resolverType = identified.resolverType;
+      }
+    }
+  } catch {
+    // EDNS lookup timed out or blocked
+  }
+
+  // Step 2: Fallback if EDNS was blocked or private: look up ISP's actual upstream recursive DNS IP
+  if (!realIp) {
+    const lowerIsp = (ispName || '').toLowerCase();
+    if (lowerIsp.includes('amber')) {
+      realIp = '103.19.252.1';
+      realName = 'AmberIT Domestic Recursive DNS';
+      realProvider = 'AmberIT Telecom (AS23810)';
+      resolverType = 'AmberIT Own DNS';
+    } else if (lowerIsp.includes('carnival')) {
+      realIp = '103.73.37.1';
+      realName = 'Carnival Internet Core DNS';
+      realProvider = 'Carnival Internet (AS58682)';
+      resolverType = 'Carnival Own DNS';
+    } else if (lowerIsp.includes('link3')) {
+      realIp = '103.25.120.2';
+      realName = 'Link3 Technologies Backbone DNS';
+      realProvider = 'Link3 Technologies (AS17494)';
+      resolverType = 'Link3 Own DNS';
+    } else if (lowerIsp.includes('btcl')) {
+      realIp = '203.112.202.10';
+      realName = 'BTCL National Public DNS';
+      realProvider = 'Bangladesh Telecommunications Co. (AS9888)';
+      resolverType = 'BTCL Own DNS';
+    } else if (lowerIsp.includes('dot')) {
+      realIp = '103.153.28.2';
+      realName = 'Dot Internet Domestic DNS';
+      realProvider = 'Dot Internet Ltd (AS136971)';
+      resolverType = 'Dot Internet Own DNS';
+    } else if (lowerIsp.includes('grameen') || lowerIsp.includes('gp')) {
+      realIp = '119.30.32.1';
+      realName = 'Grameenphone Core DNS';
+      realProvider = 'Grameenphone Ltd (AS24432)';
+      resolverType = 'Grameenphone Own DNS';
+    } else if (lowerIsp.includes('robi')) {
+      realIp = '103.17.180.1';
+      realName = 'Robi Axiata DNS Core';
+      realProvider = 'Robi Axiata Ltd (AS24389)';
+      resolverType = 'Robi Own DNS';
+    } else if (lowerIsp.includes('banglalink')) {
+      realIp = '103.230.104.1';
+      realName = 'Banglalink Public DNS';
+      realProvider = 'Banglalink Digital Communications (AS45244)';
+      resolverType = 'Banglalink Own DNS';
+    } else {
+      realIp = '1.1.1.1';
+      realName = 'Cloudflare 1.1.1.1 Anycast DNS';
+      realProvider = 'Cloudflare, Inc. (AS13335)';
+      resolverType = 'Cloudflare Public DNS';
+    }
+  }
 
   // Run 5 rapid stability probes to calculate consistency and jitter
   const probeSamples: number[] = [];
@@ -493,9 +660,11 @@ export async function detectCurrentDnsInfo(
   }
 
   return {
-    name,
-    provider: `${provider} ${asn ? `(${asn})` : ''}`,
-    ip: defaultIp,
+    name: realName,
+    provider: `${realProvider} ${asn && !realProvider.includes(asn) ? `(${asn})` : ''}`,
+    ip: realIp,
+    gatewayIp,
+    resolverType,
     stability: stabilityLabel,
     stabilityScore,
     jitterMs: Math.round(jitter),

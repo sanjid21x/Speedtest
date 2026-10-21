@@ -146,8 +146,8 @@ export const SpeedGauge: React.FC<SpeedGaugeProps> = ({
       if (Math.abs(delta) < 0.04) {
         setSmoothedValue(target);
       } else {
-        // Silky exponential lerp factor (60–144Hz smooth glide)
-        const lerpFactor = 1 - Math.exp(-14 * dt);
+        // Silky exponential lerp factor (60–144Hz smooth glide without vibration)
+        const lerpFactor = 1 - Math.exp(-7 * dt);
         const nextVal = current + delta * lerpFactor;
         setSmoothedValue(nextVal);
       }

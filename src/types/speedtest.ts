@@ -179,6 +179,8 @@ export interface CurrentDnsInfo {
   name: string;
   provider: string;
   ip: string;
+  gatewayIp?: string;
+  resolverType?: string;
   stability: string;
   stabilityScore: number;
   jitterMs: number;

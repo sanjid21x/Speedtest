@@ -62,28 +62,28 @@ export const BDIX_OOKLA_HOSTS = [
   'server-74757.prod.hosts.ooklaserver.net:8080',
 ];
 export const bdixPing = `https://${BDIX_OOKLA_HOSTS[0]}/hello`;
-export const bdixDown = (bytes: number) => `https://${BDIX_OOKLA_HOSTS[0]}/download?size=${Math.max(bytes, 25000000)}`;
+export const bdixDown = (bytes: number) => `https://${BDIX_OOKLA_HOSTS[0]}/download?size=${Math.max(bytes, 500000000)}`;
 export const bdixUp = `https://${BDIX_OOKLA_HOSTS[0]}/upload`;
 
 // 2. GGC: Google Global Cache Peered at BDIX (Direct Domestic Ookla Peering)
 export const ggcPing = `https://${BDIX_OOKLA_HOSTS[0]}/hello`;
-export const ggcDown = (bytes: number) => `https://${BDIX_OOKLA_HOSTS[0]}/download?size=${Math.max(bytes, 25000000)}`;
+export const ggcDown = (bytes: number) => `https://${BDIX_OOKLA_HOSTS[0]}/download?size=${Math.max(bytes, 500000000)}`;
 export const ggcUp = `https://${BDIX_OOKLA_HOSTS[0]}/upload`;
 
 // 3. FNA: Meta / Facebook Network Appliance Peered at BDIX (Direct Domestic Ookla Peering)
 export const fnaPing = `https://${BDIX_OOKLA_HOSTS[1]}/hello`;
-export const fnaDown = (bytes: number) => `https://${BDIX_OOKLA_HOSTS[1]}/download?size=${Math.max(bytes, 25000000)}`;
+export const fnaDown = (bytes: number) => `https://${BDIX_OOKLA_HOSTS[1]}/download?size=${Math.max(bytes, 500000000)}`;
 export const fnaUp = `https://${BDIX_OOKLA_HOSTS[1]}/upload`;
 
 // 4. IIG: International Internet Gateway (SingTel Singapore Cable Landing Terminal)
 export const IIG_OOKLA_HOST = 'server-13623.prod.hosts.ooklaserver.net:8080';
 export const iigPing = `https://${IIG_OOKLA_HOST}/hello`;
-export const iigDown = (bytes: number) => `https://${IIG_OOKLA_HOST}/download?size=${Math.max(bytes, 25000000)}`;
+export const iigDown = (bytes: number) => `https://${IIG_OOKLA_HOST}/download?size=${Math.max(bytes, 500000000)}`;
 export const iigUp = `https://${IIG_OOKLA_HOST}/upload`;
 
 // 5. Global CDN: Regional International OoklaServer Hub
 export const cdnPing = `https://${IIG_OOKLA_HOST}/hello`;
-export const cdnDown = (bytes: number) => `https://${IIG_OOKLA_HOST}/download?size=${Math.max(bytes, 25000000)}`;
+export const cdnDown = (bytes: number) => `https://${IIG_OOKLA_HOST}/download?size=${Math.max(bytes, 500000000)}`;
 export const cdnUp = `https://${IIG_OOKLA_HOST}/upload`;
 
 export const cfPing = cdnPing;
