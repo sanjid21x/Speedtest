@@ -95,6 +95,7 @@ export interface SpeedTestResult {
   connectionType?: string;
   connectionMode?: ConnectionMode;
   channelsCount?: number;
+  payloadMb?: number;
 }
 
 export interface RouteProbeResult {

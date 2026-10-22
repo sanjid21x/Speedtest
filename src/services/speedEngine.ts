@@ -19,7 +19,7 @@ export interface SpeedTestCallbacks {
 
 /**
  * High-Performance Zero-Relay Speed Engine
- * Inspired by Google Fiber Speed Test (M-Lab NDT7) and Speedtest by Ookla.
+ * SANJID Special Multi-Gigabit Direct Wire Engine.
  *
  * Key Architectural Pillars:
  * 1. Zero Relay / Direct Wire Sockets: The browser connects directly to ISP peering nodes.
@@ -59,7 +59,8 @@ export class SpeedEngine {
     server: SpeedTestServer,
     testDurationSeconds: number = 10,
     channelsCount: number = 8,
-    connectionMode: ConnectionMode = 'multi'
+    connectionMode: ConnectionMode = 'multi',
+    payloadMb: number = 500
   ): Promise<void> {
     if (this.isRunning) {
       this.abort();
@@ -95,9 +96,9 @@ export class SpeedEngine {
       const pingMetrics = await this.measurePingAndJitter(server, signal);
       if (!this.isRunning) return;
 
-      // Stage 5: 100% Real Download Speed Test (Configurable 1 to 100 Concurrent Channels)
+      // Stage 5: 100% Real Download Speed Test (Configurable 1 to 100 Concurrent Channels with Custom Payload)
       this.callbacks.onStageChange('testing_download');
-      const downloadMbps = await this.measureDownloadSpeed(server, signal, downloadDurationMs, channelsCount);
+      const downloadMbps = await this.measureDownloadSpeed(server, signal, downloadDurationMs, channelsCount, payloadMb);
       if (!this.isRunning) return;
 
       // Stage 6: 100% Real Upload Speed Test (Parallel Binary POST Sink)
@@ -120,16 +121,17 @@ export class SpeedEngine {
           ? 'Single Stream (1 Channel)'
           : `${channelsCount} Concurrent Channels`;
 
+      const payloadLabel = payloadMb >= 1000 ? `${(payloadMb / 1000).toFixed(1)}GB` : `${payloadMb}MB`;
       const protocolLabel =
         server.category === 'ggc'
-          ? `Speedtest by Ookla (GGC Peering • ${channelDesc})`
+          ? `SANJID Special (GGC Peering • ${channelDesc} • ${payloadLabel} Payload)`
           : server.category === 'bdix'
-            ? `Speedtest by Ookla (BDIX Peering • ${channelDesc})`
+            ? `SANJID Special (BDIX Peering • ${channelDesc} • ${payloadLabel} Payload)`
             : server.category === 'iig'
-              ? `Speedtest by Ookla (SingTel Subsea • ${channelDesc})`
+              ? `SANJID Special (SingTel Subsea • ${channelDesc} • ${payloadLabel} Payload)`
               : server.category === 'fna'
-                ? `Speedtest by Ookla (Meta FNA • ${channelDesc})`
-                : `Speedtest by Ookla (${channelDesc})`;
+                ? `SANJID Special (Meta FNA • ${channelDesc} • ${payloadLabel} Payload)`
+                : `SANJID Special (${channelDesc} • ${payloadLabel} Payload)`;
 
       const finalResult: SpeedTestResult = {
         id: `test-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
@@ -156,6 +158,7 @@ export class SpeedEngine {
         connectionType: 'Direct IPv4 Wire Socket • Port 8080 (IPv4 Enforced • Zero Proxy)',
         connectionMode,
         channelsCount,
+        payloadMb,
       };
 
       this.callbacks.onStageChange('completed');
@@ -310,8 +313,8 @@ export class SpeedEngine {
 
   /**
    * 100% Real Download Speed measurement:
-   * Ookla & Google Fiber Multi-Stream Architecture:
-   * 6 concurrent persistent worker streams streaming continuous binary chunks.
+   * SANJID Special Multi-Stream Architecture:
+   * Concurrent persistent worker streams streaming continuous large binary payloads (100MB to 5000MB).
    * Pure physical throughput = (totalBytesLoaded * 8) / (elapsedSeconds * 1,000,000).
    * ZERO multipliers. ZERO fake boosts. ZERO synthetic bytes.
    */
@@ -319,7 +322,8 @@ export class SpeedEngine {
     server: SpeedTestServer,
     signal: AbortSignal,
     durationMs: number = 8000,
-    channelsCount: number = 8
+    channelsCount: number = 8,
+    payloadMb: number = 500
   ): Promise<number> {
     const TEST_DURATION_MS = durationMs;
     const startTime = performance.now();
@@ -436,13 +440,14 @@ export class SpeedEngine {
       }
     };
 
-    // Dynamically spawn streams: each stream pulls 500 Megabytes (500,000,000 bytes) continuous stream
+    // Dynamically spawn streams: each stream pulls the custom payload (100MB to 5000MB) continuous stream
     const actualChannels = Math.max(1, Math.min(100, channelsCount));
     const streamPromises: Promise<void>[] = [];
-    const LARGE_PAYLOAD_500MB = 500_000_000; // 500 Megabytes requested by user
+    const sanitizedMb = Math.max(100, Math.min(5000, Math.round(payloadMb || 500)));
+    const targetPayloadBytes = sanitizedMb * 1_000_000;
 
     for (let i = 0; i < actualChannels; i++) {
-      streamPromises.push(runStream(i, LARGE_PAYLOAD_500MB));
+      streamPromises.push(runStream(i, targetPayloadBytes));
     }
 
     await Promise.allSettled(streamPromises);

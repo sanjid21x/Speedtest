@@ -135,7 +135,7 @@ export default function App() {
     const details = await fetchClientNetworkInfo();
     setClientNetwork(details);
     if (details.isp && details.isp !== 'Detecting ISP...') {
-      // Like Ookla Speedtest: automatically select the direct endpoint for client ISP
+      // SANJID Special: automatically select the direct endpoint for client ISP
       const bestServer = findBestServerForIsp(details.isp);
       setActiveServer(bestServer);
       setSelectedServerId(bestServer.id);
@@ -153,6 +153,17 @@ export default function App() {
   const [stage, setStage] = useState<TestStage>('idle');
   const [connectionMode, setConnectionMode] = useState<ConnectionMode>('multi');
   const [channelsCount, setChannelsCount] = useState<number>(8);
+  const [payloadMb, setPayloadMb] = useState<number>(() => {
+    const saved = localStorage.getItem('sanjid_speed_payload_mb');
+    return saved ? Math.min(5000, Math.max(100, Number(saved))) : 500;
+  });
+
+  const handlePayloadMbChange = (mb: number) => {
+    const val = Math.min(5000, Math.max(100, Math.round(mb)));
+    setPayloadMb(val);
+    localStorage.setItem('sanjid_speed_payload_mb', String(val));
+  };
+
   const [currentLiveValue, setCurrentLiveValue] = useState<number>(0);
   const [pingValue, setPingValue] = useState<number>(0);
   const [jitterValue, setJitterValue] = useState<number>(0);
@@ -222,7 +233,7 @@ export default function App() {
     setUploadValue(0);
     setLatestResult(null);
 
-    engineRef.current?.start(activeServer, testDuration, channelsCount, connectionMode);
+    engineRef.current?.start(activeServer, testDuration, channelsCount, connectionMode, payloadMb);
   };
 
   const handleStop = () => {
@@ -367,6 +378,8 @@ export default function App() {
             onStop={handleStop}
             onRestart={handleRestart}
             theme={activeTheme}
+            payloadMb={payloadMb}
+            onChangePayloadMb={handlePayloadMbChange}
           />
         </div>
 

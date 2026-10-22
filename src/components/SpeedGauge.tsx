@@ -35,6 +35,8 @@ interface SpeedGaugeProps {
   onStop: () => void;
   onRestart: () => void;
   theme: 'dark' | 'light';
+  payloadMb?: number;
+  onChangePayloadMb?: (mb: number) => void;
 }
 
 // Calibrated Multi-Gigabit Scale Points (0 to 10,000 Mbps / 10 Gbps)
@@ -97,8 +99,11 @@ export const SpeedGauge: React.FC<SpeedGaugeProps> = ({
   onStop,
   onRestart,
   theme,
+  payloadMb = 500,
+  onChangePayloadMb,
 }) => {
   const [showChannelCustomizer, setShowChannelCustomizer] = useState(false);
+  const [showPayloadCustomizer, setShowPayloadCustomizer] = useState(true);
 
   const isTesting =
     stage === 'initializing' ||
@@ -315,7 +320,7 @@ export const SpeedGauge: React.FC<SpeedGaugeProps> = ({
                   ? 'bg-cyan-500 text-slate-950 shadow-xs'
                   : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/80'
               } ${isTesting ? 'opacity-50 cursor-not-allowed' : ''}`}
-              title="Multi Channel: 8 parallel streams (Ookla standard for full fiber link saturation)"
+              title="Multi Channel: 8 parallel streams (SANJID Special standard for full fiber link saturation)"
             >
               Multi (8x)
             </button>
@@ -337,7 +342,22 @@ export const SpeedGauge: React.FC<SpeedGaugeProps> = ({
             </button>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Custom Payload Megabyte Toggle Pill */}
+            <button
+              disabled={isTesting}
+              onClick={() => setShowPayloadCustomizer(!showPayloadCustomizer)}
+              className={`px-2.5 py-0.5 text-xs font-bold rounded-md transition-all cursor-pointer flex items-center gap-1 border ${
+                showPayloadCustomizer
+                  ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 border-amber-400 shadow-xs'
+                  : 'bg-slate-950/60 text-amber-300 border-amber-500/30 hover:border-amber-400'
+              } ${isTesting ? 'opacity-50 cursor-not-allowed' : ''}`}
+              title="Custom Payload (100 to 5000 MB): large payload prevents needle fluctuation and TCP dips"
+            >
+              <Sparkles className="w-3 h-3 text-amber-400" />
+              <span>Payload: {payloadMb >= 1000 ? `${(payloadMb / 1000).toFixed(payloadMb % 1000 === 0 ? 0 : 1)} GB` : `${payloadMb} MB`}</span>
+            </button>
+
             {/* Test Duration Selector */}
             <div className="flex items-center gap-1 p-0.5 rounded-lg bg-slate-950/60 border border-slate-800">
               <span className="text-[11px] font-semibold text-slate-400 px-1.5 flex items-center gap-1">
@@ -433,6 +453,73 @@ export const SpeedGauge: React.FC<SpeedGaugeProps> = ({
                   }`}
                 >
                   {preset} {preset === 1 ? 'Stream' : 'Streams'}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Custom 100 to 5000 MB Payload Slider Drawer (SANJID Special) */}
+        {showPayloadCustomizer && (
+          <div className="w-full mb-3 p-3 rounded-xl bg-slate-950/85 border border-cyan-500/35 text-slate-200 animate-fade-in flex flex-col gap-2.5 shadow-lg shadow-cyan-950/30">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-xs font-bold text-cyan-400 flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                  Custom Payload Size (SANJID Special):
+                </span>
+                <span className="px-2.5 py-0.5 rounded-md font-mono text-xs font-black bg-cyan-500/20 text-cyan-300 border border-cyan-500/40">
+                  {payloadMb >= 1000 ? `${(payloadMb / 1000).toFixed(payloadMb % 1000 === 0 ? 0 : 1)} GB` : `${payloadMb} MB`}
+                </span>
+                <span className="text-[11px] text-slate-400 font-mono hidden sm:inline">
+                  ({payloadMb} MB per stream • High buffer prevents needle fluctuation)
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowPayloadCustomizer(false)}
+                className="text-[10px] text-slate-400 hover:text-slate-200 underline cursor-pointer"
+              >
+                Hide
+              </button>
+            </div>
+
+            {/* Continuous range slider: 100 to 5000 MB */}
+            <div className="flex items-center gap-3">
+              <span className="text-[10.5px] font-mono font-bold text-slate-400 shrink-0">100 MB</span>
+              <input
+                type="range"
+                min="100"
+                max="5000"
+                step="50"
+                disabled={isTesting}
+                value={payloadMb}
+                onChange={(e) => onChangePayloadMb && onChangePayloadMb(Number(e.target.value))}
+                className={`w-full accent-cyan-400 cursor-pointer h-2 bg-slate-800 rounded-lg ${
+                  isTesting ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
+                title="Drag slider to set custom test payload from 100 MB to 5000 MB"
+              />
+              <span className="text-[10.5px] font-mono font-bold text-cyan-400 shrink-0">5000 MB (5 GB)</span>
+            </div>
+
+            {/* Quick preset buttons */}
+            <div className="flex items-center gap-1.5 pt-1 border-t border-slate-800/80 flex-wrap">
+              <span className="text-[10px] text-slate-400 font-medium">Quick Presets:</span>
+              {[100, 250, 500, 1000, 2500, 5000].map((preset) => (
+                <button
+                  key={preset}
+                  type="button"
+                  disabled={isTesting}
+                  onClick={() => onChangePayloadMb && onChangePayloadMb(preset)}
+                  className={`px-2 py-0.5 text-[10px] font-bold font-mono rounded border transition-all cursor-pointer ${
+                    payloadMb === preset
+                      ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white border-cyan-400 shadow-xs'
+                      : 'bg-slate-900 hover:bg-slate-800 border-slate-700 text-slate-300'
+                  } ${isTesting ? 'opacity-50 cursor-not-allowed' : ''}`}
+                >
+                  {preset >= 1000 ? `${preset / 1000} GB` : `${preset} MB`}
+                  {preset === 500 ? ' (Standard)' : ''}
                 </button>
               ))}
             </div>

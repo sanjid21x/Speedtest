@@ -181,11 +181,11 @@ export const ClientNetworkCard: React.FC<ClientNetworkCardProps> = ({
               )}
             </div>
 
-            {/* Speedtest by Ookla API / Zero Relay Badge */}
-            <div className="mt-2 px-2 py-1 rounded bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-between text-[10.5px]">
-              <span className="text-cyan-400 font-semibold flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
-                Speedtest by Ookla API
+            {/* SANJID Special Multi-Gigabit Engine Badge */}
+            <div className="mt-2 px-2 py-1 rounded bg-gradient-to-r from-amber-500/10 via-cyan-500/10 to-indigo-500/10 border border-amber-500/30 flex items-center justify-between text-[10.5px]">
+              <span className="font-bold flex items-center gap-1.5 text-amber-300">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+                SANJID Special Engine
               </span>
               <span className="text-emerald-400 font-mono text-[10px] font-bold">Zero Proxy • Direct Wire</span>
             </div>

@@ -287,6 +287,11 @@ Tested on: ${formattedDate}`;
                 ⚡ {result.protocol}
               </span>
             )}
+            {result.payloadMb && (
+              <span className="text-[10px] px-1.5 py-0.5 rounded font-mono font-medium bg-amber-500/15 text-amber-300 border border-amber-500/25">
+                📦 {result.payloadMb >= 1000 ? `${(result.payloadMb / 1000).toFixed(1)} GB` : `${result.payloadMb} MB`} Payload / Stream
+              </span>
+            )}
             {result.connectionType && (
               <span className="text-[10px] px-1.5 py-0.5 rounded font-mono font-medium bg-blue-500/15 text-blue-300 border border-blue-500/25">
                 🔒 {result.connectionType}
