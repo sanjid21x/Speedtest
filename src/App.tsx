@@ -17,7 +17,7 @@ import {
   ConnectionMode,
 } from './types/speedtest';
 import { SpeedEngine } from './services/speedEngine';
-import { getActiveServer, findBestServerForIsp, setSelectedServerId } from './services/servers';
+import { getActiveServer, findBestServerForIsp, setSelectedServerId, updateDynamicServers } from './services/servers';
 import { getHistory, saveResultToHistory } from './services/history';
 import { fetchClientNetworkInfo } from './services/networkInfo';
 import { SpeedGauge } from './components/SpeedGauge';
@@ -135,7 +135,8 @@ export default function App() {
     const details = await fetchClientNetworkInfo();
     setClientNetwork(details);
     if (details.isp && details.isp !== 'Detecting ISP...') {
-      // SANJID Special: automatically select the direct endpoint for client ISP
+      // First recognise the ISP, then dynamically discover and generate servers
+      updateDynamicServers(details);
       const bestServer = findBestServerForIsp(details.isp);
       setActiveServer(bestServer);
       setSelectedServerId(bestServer.id);
@@ -291,12 +292,13 @@ export default function App() {
 
           {/* Right Header Actions */}
           <div className="flex items-center gap-2 sm:gap-3">
-            {/* Global Server Selector */}
+            {/* Global Dynamic Server Selector */}
             <ServerSelector
               activeServer={activeServer}
               onServerChange={setActiveServer}
               disabled={isTesting}
               theme={activeTheme}
+              clientNetwork={clientNetwork}
             />
 
             {/* Network Online Status Pill */}

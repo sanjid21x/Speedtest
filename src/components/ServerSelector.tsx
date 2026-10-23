@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from 'react';
-import { NetworkCategory, SpeedTestServer } from '../types/speedtest';
+import React, { useState, useMemo, useEffect } from 'react';
+import { ClientNetworkDetails, NetworkCategory, SpeedTestServer } from '../types/speedtest';
 import {
   getAllServers,
   saveCustomServer,
@@ -7,13 +7,14 @@ import {
   setActiveServerId,
   NETWORK_CATEGORIES,
 } from '../services/servers';
-import { Server, Plus, Trash2, X, CheckCircle, MapPin, Search, Globe, ChevronDown } from 'lucide-react';
+import { Server, Plus, Trash2, X, CheckCircle, MapPin, Search, Globe, ChevronDown, Sparkles, RefreshCw } from 'lucide-react';
 
 interface ServerSelectorProps {
   activeServer: SpeedTestServer;
   onServerChange: (server: SpeedTestServer) => void;
   disabled: boolean;
   theme: 'dark' | 'light';
+  clientNetwork?: ClientNetworkDetails;
 }
 
 export const ServerSelector: React.FC<ServerSelectorProps> = ({
@@ -21,12 +22,19 @@ export const ServerSelector: React.FC<ServerSelectorProps> = ({
   onServerChange,
   disabled,
   theme,
+  clientNetwork,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
-  const [servers, setServers] = useState<SpeedTestServer[]>(() => getAllServers());
+  const [servers, setServers] = useState<SpeedTestServer[]>(() => getAllServers(clientNetwork));
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+
+  useEffect(() => {
+    if (clientNetwork && clientNetwork.isp && clientNetwork.isp !== 'Detecting ISP...') {
+      setServers(getAllServers(clientNetwork));
+    }
+  }, [clientNetwork]);
 
   // Form state for custom server
   const [formName, setFormName] = useState('');
@@ -37,7 +45,7 @@ export const ServerSelector: React.FC<ServerSelectorProps> = ({
   const [formUploadUrl, setFormUploadUrl] = useState('');
 
   const refreshList = () => {
-    const list = getAllServers();
+    const list = getAllServers(clientNetwork);
     setServers(list);
   };
 
@@ -160,9 +168,32 @@ export const ServerSelector: React.FC<ServerSelectorProps> = ({
                 <span>Custom Node</span>
               </button>
             </div>
+            {/* Dynamic Server Topology Discovery Banner */}
+            <div className="mx-0.5 mt-2 mb-2 p-2 rounded-xl bg-gradient-to-r from-cyan-500/10 via-blue-500/10 to-indigo-500/10 border border-cyan-500/25 flex items-center justify-between text-[11px]">
+              <div className="flex flex-col">
+                <span className="font-bold text-cyan-300 flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                  Dynamic Topology Discovery
+                </span>
+                <span className="text-[10px] text-slate-400 font-mono">
+                  {clientNetwork?.isp && clientNetwork.isp !== 'Detecting ISP...'
+                    ? `Discovered for: ${clientNetwork.isp} (${clientNetwork.city || 'Dhaka'})`
+                    : 'Discovering servers based on your recognized ISP...'}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={refreshList}
+                className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 text-[10px] font-bold hover:bg-cyan-500/30 transition-all cursor-pointer"
+                title="Re-probe dynamic endpoints"
+              >
+                <RefreshCw className="w-2.5 h-2.5" />
+                <span>Re-scan</span>
+              </button>
+            </div>
 
             {/* Live Search Input */}
-            <div className="relative mt-2.5 mb-2">
+            <div className="relative mt-1 mb-2">
               <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
                 type="text"

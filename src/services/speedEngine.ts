@@ -116,22 +116,22 @@ export class SpeedEngine {
       const networkInfo = this.getNetworkInfo();
       const deviceInfo = this.getDeviceInfo();
 
-      const channelDesc =
+      const threadDesc =
         channelsCount === 1
-          ? 'Single Stream (1 Channel)'
-          : `${channelsCount} Concurrent Channels`;
+          ? '1 Thread'
+          : `${channelsCount} Threads`;
 
       const payloadLabel = payloadMb >= 1000 ? `${(payloadMb / 1000).toFixed(1)}GB` : `${payloadMb}MB`;
       const protocolLabel =
         server.category === 'ggc'
-          ? `SANJID Special (GGC Peering • ${channelDesc} • ${payloadLabel} Payload)`
+          ? `SANJID Special (GGC Peering • ${threadDesc} • ${payloadLabel} Payload)`
           : server.category === 'bdix'
-            ? `SANJID Special (BDIX Peering • ${channelDesc} • ${payloadLabel} Payload)`
+            ? `SANJID Special (BDIX Peering • ${threadDesc} • ${payloadLabel} Payload)`
             : server.category === 'iig'
-              ? `SANJID Special (SingTel Subsea • ${channelDesc} • ${payloadLabel} Payload)`
+              ? `SANJID Special (SingTel Subsea • ${threadDesc} • ${payloadLabel} Payload)`
               : server.category === 'fna'
-                ? `SANJID Special (Meta FNA • ${channelDesc} • ${payloadLabel} Payload)`
-                : `SANJID Special (${channelDesc} • ${payloadLabel} Payload)`;
+                ? `SANJID Special (Meta FNA • ${threadDesc} • ${payloadLabel} Payload)`
+                : `SANJID Special (${threadDesc} • ${payloadLabel} Payload)`;
 
       const finalResult: SpeedTestResult = {
         id: `test-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,

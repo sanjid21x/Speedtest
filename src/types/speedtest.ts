@@ -60,6 +60,7 @@ export interface StreamProgress {
   averageMbps: number;
   progressPercent: number;
   channelsCount?: number;
+  threadsCount?: number;
 }
 
 export interface SpeedTestResult {
@@ -95,6 +96,7 @@ export interface SpeedTestResult {
   connectionType?: string;
   connectionMode?: ConnectionMode;
   channelsCount?: number;
+  threadsCount?: number;
   payloadMb?: number;
 }
 
