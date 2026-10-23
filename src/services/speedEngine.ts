@@ -60,7 +60,8 @@ export class SpeedEngine {
     testDurationSeconds: number = 10,
     channelsCount: number = 8,
     connectionMode: ConnectionMode = 'multi',
-    payloadMb: number = 500
+    payloadMb: number = 500,
+    ipProtocol: 'ipv4' | 'ipv6' = 'ipv4'
   ): Promise<void> {
     if (this.isRunning) {
       this.abort();
@@ -121,17 +122,18 @@ export class SpeedEngine {
           ? '1 Thread'
           : `${channelsCount} Threads`;
 
+      const protoUpper = ipProtocol.toUpperCase();
       const payloadLabel = payloadMb >= 1000 ? `${(payloadMb / 1000).toFixed(1)}GB` : `${payloadMb}MB`;
       const protocolLabel =
         server.category === 'ggc'
-          ? `SANJID Special (GGC Peering • ${threadDesc} • ${payloadLabel} Payload)`
+          ? `SANJID Special (${protoUpper} • GGC Peering • ${threadDesc} • ${payloadLabel} Payload)`
           : server.category === 'bdix'
-            ? `SANJID Special (BDIX Peering • ${threadDesc} • ${payloadLabel} Payload)`
+            ? `SANJID Special (${protoUpper} • BDIX Peering • ${threadDesc} • ${payloadLabel} Payload)`
             : server.category === 'iig'
-              ? `SANJID Special (SingTel Subsea • ${threadDesc} • ${payloadLabel} Payload)`
+              ? `SANJID Special (${protoUpper} • SingTel Subsea • ${threadDesc} • ${payloadLabel} Payload)`
               : server.category === 'fna'
-                ? `SANJID Special (Meta FNA • ${threadDesc} • ${payloadLabel} Payload)`
-                : `SANJID Special (${threadDesc} • ${payloadLabel} Payload)`;
+                ? `SANJID Special (${protoUpper} • Meta FNA • ${threadDesc} • ${payloadLabel} Payload)`
+                : `SANJID Special (${protoUpper} • ${threadDesc} • ${payloadLabel} Payload)`;
 
       const finalResult: SpeedTestResult = {
         id: `test-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
@@ -148,17 +150,19 @@ export class SpeedEngine {
           categoryLabel: server.categoryLabel,
           ipAddress: server.ipAddress || (server.category === 'bdix' || server.category === 'ggc' ? '103.77.188.20' : server.category === 'fna' ? '103.73.37.50' : '165.21.70.30'),
           siteType: server.siteType || (server.category === 'bdix' ? 'Domestic BDIX Site' : server.category === 'iig' ? 'IIG Submarine Gateway' : server.category === 'ggc' ? 'GGC ISP Cache Edge' : server.category === 'fna' ? 'FNA Meta Peering Edge' : 'Global Anycast CDN'),
-          transitDetails: server.transitDetails || 'Direct Domestic IXP • Zero Subsea Transit • IPv4 Enforced',
-          ipv4Only: true,
+          transitDetails: server.transitDetails || `Direct Domestic IXP • Zero Subsea Transit • ${protoUpper} Enforced`,
+          ipv4Only: ipProtocol === 'ipv4',
         },
         durationSeconds: Number(totalDuration.toFixed(1)),
         networkInfo,
         deviceInfo,
         protocol: protocolLabel,
-        connectionType: 'Direct IPv4 Wire Socket • Port 8080 (IPv4 Enforced • Zero Proxy)',
+        connectionType: `Direct ${protoUpper} Wire Socket • Port 8080 (${protoUpper} Enforced • Zero Proxy)`,
         connectionMode,
         channelsCount,
+        threadsCount: channelsCount,
         payloadMb,
+        ipProtocol,
       };
 
       this.callbacks.onStageChange('completed');

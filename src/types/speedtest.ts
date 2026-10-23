@@ -98,6 +98,7 @@ export interface SpeedTestResult {
   channelsCount?: number;
   threadsCount?: number;
   payloadMb?: number;
+  ipProtocol?: IpTestProtocol;
 }
 
 export interface RouteProbeResult {
@@ -118,9 +119,19 @@ export interface IspUpstreamInfo {
   totalBandwidth: string;
 }
 
+export type IpTestProtocol = 'ipv4' | 'ipv6';
+
 export interface ClientNetworkDetails {
   ip: string;
   ipVersion: 'IPv4' | 'IPv6';
+  ipv4?: {
+    supported: boolean;
+    ip?: string;
+  };
+  ipv6?: {
+    supported: boolean;
+    ip?: string;
+  };
   isp: string;
   asn?: string;
   org?: string;

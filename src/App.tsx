@@ -165,6 +165,16 @@ export default function App() {
     localStorage.setItem('sanjid_speed_payload_mb', String(val));
   };
 
+  // IP Protocol state: 'ipv4' or 'ipv6'
+  const [ipProtocol, setIpProtocol] = useState<'ipv4' | 'ipv6'>(() => {
+    return (localStorage.getItem('speedtest_ip_protocol') as 'ipv4' | 'ipv6') || 'ipv4';
+  });
+
+  const handleIpProtocolChange = (proto: 'ipv4' | 'ipv6') => {
+    setIpProtocol(proto);
+    localStorage.setItem('speedtest_ip_protocol', proto);
+  };
+
   const [currentLiveValue, setCurrentLiveValue] = useState<number>(0);
   const [pingValue, setPingValue] = useState<number>(0);
   const [jitterValue, setJitterValue] = useState<number>(0);
@@ -234,7 +244,7 @@ export default function App() {
     setUploadValue(0);
     setLatestResult(null);
 
-    engineRef.current?.start(activeServer, testDuration, channelsCount, connectionMode, payloadMb);
+    engineRef.current?.start(activeServer, testDuration, channelsCount, connectionMode, payloadMb, ipProtocol);
   };
 
   const handleStop = () => {
@@ -382,6 +392,8 @@ export default function App() {
             theme={activeTheme}
             payloadMb={payloadMb}
             onChangePayloadMb={handlePayloadMbChange}
+            ipProtocol={ipProtocol}
+            onChangeIpProtocol={handleIpProtocolChange}
           />
         </div>
 
@@ -425,42 +437,6 @@ export default function App() {
           </div>
         )}
 
-        {/* Live Metrics Quick Bar during active test */}
-        {isTesting && (
-          <div
-            className={`w-full max-w-xl grid grid-cols-4 gap-2 p-3 rounded-2xl border text-center animate-fade-in ${
-              activeTheme === 'dark'
-                ? 'bg-slate-900/60 border-slate-800 text-slate-200'
-                : 'bg-white border-slate-200 text-slate-700 shadow-sm'
-            }`}
-          >
-            <div>
-              <span className="block text-[10px] uppercase font-semibold text-slate-400">Ping</span>
-              <span className="font-mono text-sm sm:text-base font-bold text-slate-100">
-                {pingValue > 0 ? `${pingValue} ms` : '--'}
-              </span>
-            </div>
-            <div>
-              <span className="block text-[10px] uppercase font-semibold text-slate-400">Jitter</span>
-              <span className="font-mono text-sm sm:text-base font-bold text-slate-100">
-                {jitterValue > 0 ? `±${jitterValue} ms` : '--'}
-              </span>
-            </div>
-            <div>
-              <span className="block text-[10px] uppercase font-semibold text-cyan-400">Download</span>
-              <span className="font-mono text-sm sm:text-base font-bold text-cyan-400">
-                {downloadValue > 0 ? `${formatSpeedValue(downloadValue, speedUnit, 1)} ${getUnitLabel(speedUnit)}` : '--'}
-              </span>
-            </div>
-            <div>
-              <span className="block text-[10px] uppercase font-semibold text-red-400">Upload</span>
-              <span className="font-mono text-sm sm:text-base font-bold text-red-400">
-                {uploadValue > 0 ? `${formatSpeedValue(uploadValue, speedUnit, 1)} ${getUnitLabel(speedUnit)}` : '--'}
-              </span>
-            </div>
-          </div>
-        )}
-
         {/* 2nd: Test Server Selection (BDIX, GGC, FNA, IIG, Global CDN) */}
         <div className="w-full flex justify-center">
           <NetworkRouteSelector
@@ -475,7 +451,6 @@ export default function App() {
         <div className="w-full max-w-3xl">
           <ClientNetworkCard
             networkInfo={clientNetwork}
-            activeServer={activeServer}
             onRefresh={loadNetworkDetails}
             theme={activeTheme}
           />
