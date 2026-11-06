@@ -219,3 +219,16 @@ export interface CurrentDnsInfo {
   livePingHistory?: number[];
   monitoringActive?: boolean;
 }
+
+export interface BackendRouteHop {
+  hop: number;
+  name: string;
+  deviceType: 'client' | 'lan_router' | 'cgnat_proxy' | 'isp_core' | 'landing_station' | 'ixp_switch' | 'transit_carrier' | 'destination_server';
+  roleLabel: string;
+  ip: string;
+  asn?: string;
+  latencyEstMs: number;
+  location: string;
+  notes?: string;
+  isMainServer?: boolean;
+}

@@ -102,9 +102,9 @@ export const NetworkRouteSelector: React.FC<NetworkRouteSelectorProps> = ({
   return (
     <div className="w-full max-w-3xl flex flex-col items-center gap-3">
       {/* Route Mode Filter Pills */}
-      <div className="w-full flex flex-col sm:flex-row items-center justify-between gap-2 p-1.5 rounded-2xl bg-slate-900/70 border border-slate-800 backdrop-blur-md">
+      <div className="w-full flex items-center justify-center p-1.5 rounded-2xl bg-slate-900/70 border border-slate-800 backdrop-blur-md">
         {/* Route Pills */}
-        <div className="flex flex-wrap items-center justify-center gap-1 sm:gap-1.5 w-full sm:w-auto">
+        <div className="flex flex-wrap items-center justify-center gap-1.5 sm:gap-2">
           {NETWORK_CATEGORIES.map((cat) => {
             const isSelected = activeServer.category === cat.id;
             const routeInfo = getRouteChannelInfo(cat.id);
@@ -114,7 +114,7 @@ export const NetworkRouteSelector: React.FC<NetworkRouteSelectorProps> = ({
                 onClick={() => handleCategorySelect(cat.id)}
                 disabled={disabled}
                 type="button"
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                   disabled ? 'opacity-50 cursor-not-allowed' : ''
                 } ${
                   isSelected
@@ -125,24 +125,9 @@ export const NetworkRouteSelector: React.FC<NetworkRouteSelectorProps> = ({
               >
                 {getCategoryIcon(cat.id)}
                 <span>{cat.name}</span>
-                <span
-                  className={`text-[9.5px] font-mono px-1.5 py-0.2 rounded font-medium ${
-                    isSelected ? 'bg-cyan-500/30 text-white' : 'text-slate-500 bg-slate-800/50'
-                  }`}
-                >
-                  {cat.tag}
-                </span>
               </button>
             );
           })}
-        </div>
-
-        {/* Live Route Mode Indicator */}
-        <div className="flex items-center gap-1.5 pr-2 py-0.5">
-          <span className="flex items-center gap-1 text-[11px] font-mono text-emerald-400">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            100% Real Test
-          </span>
         </div>
       </div>
 

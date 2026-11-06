@@ -464,12 +464,14 @@ export default function App() {
           />
         </div>
 
-        {/* 3rd: Network Identity Box (ISP Name, Public IP, IPv4/IPv6, Location, Route Channels, Upstreams) */}
+        {/* 3rd: ISP Info & Backend Route Details */}
         <div className="w-full max-w-3xl">
           <ClientNetworkCard
             networkInfo={clientNetwork}
             onRefresh={loadNetworkDetails}
             theme={activeTheme}
+            activeServer={activeServer}
+            ipProtocol={ipProtocol}
           />
         </div>
 

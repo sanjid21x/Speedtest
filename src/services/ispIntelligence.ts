@@ -1,4 +1,11 @@
-import { IspUpstreamInfo, NetworkCategory } from '../types/speedtest';
+import {
+  IspUpstreamInfo,
+  NetworkCategory,
+  BackendRouteHop,
+  ClientNetworkDetails,
+  SpeedTestServer,
+  IpTestProtocol,
+} from '../types/speedtest';
 
 export interface KnownIspProfile {
   asnList: string[];
@@ -372,4 +379,204 @@ export function getRouteChannelInfo(category: NetworkCategory): {
         description: 'Traverses international submarine fiber cables (SMW-4, SMW-5) and ITC terrestrial links for worldwide internet transit.',
       };
   }
+}
+
+export function generateBackendRouteHops(
+  server?: SpeedTestServer,
+  clientNetwork?: ClientNetworkDetails,
+  ipProtocol: IpTestProtocol = 'ipv4'
+): BackendRouteHop[] {
+  const isV6 = ipProtocol === 'ipv6';
+  const isV4toV6 = ipProtocol === 'ipv4_to_ipv6';
+  const isV6toV4 = ipProtocol === 'ipv6_to_ipv4';
+
+  const clientIpv4 = clientNetwork?.ipv4?.ip || (clientNetwork?.ip && !clientNetwork.ip.includes(':') ? clientNetwork.ip : '103.145.118.10');
+  const clientIpv6 = clientNetwork?.ipv6?.ip || (clientNetwork?.ip && clientNetwork.ip.includes(':') ? clientNetwork.ip : '2400:1a00:b030::21');
+  const city = clientNetwork?.city || 'Dhaka';
+  const isp = clientNetwork?.isp || 'Broadband ISP';
+  const asn = clientNetwork?.asn || 'AS-Local';
+
+  const srvName = server?.name || 'Speed Test Core Server';
+  const srvCategory = server?.category || 'bdix';
+  const targetIp = isV6
+    ? (server?.ipv6Address || '2404:6800:4003:c00::64')
+    : (server?.ipv4Address || server?.ipAddress || '103.77.188.20');
+  const srvLocation = server?.location || `${city}, Bangladesh`;
+  const cable = server?.cableSystem || 'Domestic Optical Fiber';
+  const dist = server?.distanceKm || 15;
+
+  const hops: BackendRouteHop[] = [];
+
+  // Hop 1: Client Host Terminal
+  hops.push({
+    hop: 1,
+    name: 'Client Terminal / Browser Socket',
+    deviceType: 'client',
+    roleLabel: isV6 ? 'Host IPv6 Interface' : 'Host IPv4 Interface',
+    ip: isV6 ? '::1 / Host Socket' : '192.168.1.105 (Local DHCP)',
+    latencyEstMs: 0.2,
+    location: `${city} (User Premises)`,
+    notes: 'Local hardware TCP stack binding',
+  });
+
+  // Hop 2: Customer Premises Gateway / ONT
+  hops.push({
+    hop: 2,
+    name: 'Customer Wi-Fi / GPON ONT Gateway',
+    deviceType: 'lan_router',
+    roleLabel: 'LAN Default Gateway',
+    ip: isV6 ? 'fe80::1 (Link-Local Gateway)' : '192.168.1.1 (Gateway)',
+    latencyEstMs: 1.2,
+    location: `${city} (Home/Office)`,
+    notes: 'Zero-drop local optical/Ethernet gateway',
+  });
+
+  // Hop 3: ISP BNG / CGNAT Proxy Gateway
+  if (isV4toV6) {
+    hops.push({
+      hop: 3,
+      name: 'Stateful NAT64 / DNS64 CGNAT Gateway',
+      deviceType: 'cgnat_proxy',
+      roleLabel: 'NAT64 Stateful Translation Proxy',
+      ip: '64:ff9b::100.64.1.1',
+      asn,
+      latencyEstMs: 7.5,
+      location: `${city} ISP Edge Datacenter`,
+      notes: 'State table translation (IPv4 packet wrapped into IPv6 header)',
+    });
+  } else if (isV6toV4) {
+    hops.push({
+      hop: 3,
+      name: '464XLAT CLAT / PLAT Border Router',
+      deviceType: 'cgnat_proxy',
+      roleLabel: 'SIIT / PLAT Dual-Stack Translator',
+      ip: '100.64.0.1 (Carrier-Grade PLAT)',
+      asn,
+      latencyEstMs: 5.8,
+      location: `${city} Carrier Core`,
+      notes: 'RFC 6877 client-to-provider stateless address translation',
+    });
+  } else {
+    hops.push({
+      hop: 3,
+      name: `${isp} Edge Aggregation Router (BNG)`,
+      deviceType: 'isp_core',
+      roleLabel: 'Broadband Network Gateway (BNG)',
+      ip: isV6 ? '2400:1a00:b000::1' : '100.64.32.1 (ISP Metro Aggregator)',
+      asn,
+      latencyEstMs: 3.8,
+      location: `${city} Metro Aggregation Ring`,
+      notes: 'Optical distribution loop & PPPoE/IPoE termination',
+    });
+  }
+
+  // Hop 4: ISP Core Optical Distribution Core
+  hops.push({
+    hop: 4,
+    name: `${isp} Core Optical Backbone Switch`,
+    deviceType: 'isp_core',
+    roleLabel: 'Intra-ISP Core Transit Ring',
+    ip: isV6 ? clientIpv6 : clientIpv4,
+    asn,
+    latencyEstMs: 5.2,
+    location: `${city} Tier-3 Datacenter`,
+    notes: 'Direct 100G DWDM optical backbone interconnect',
+  });
+
+  // Hop 5: Route Peering / Submarine Cable / Cache Core
+  if (srvCategory === 'bdix') {
+    hops.push({
+      hop: 5,
+      name: 'BDIX National IXP Core Peering Switch',
+      deviceType: 'ixp_switch',
+      roleLabel: 'Domestic Peering Fabric (AS38258)',
+      ip: '103.77.188.1 (BDIX Dhaka Core)',
+      asn: 'AS38258',
+      latencyEstMs: 6.8,
+      location: 'Dhaka National IXP Core, Bangladesh',
+      notes: 'Zero subsea hop • National optical cross-connect ring',
+    });
+  } else if (srvCategory === 'ggc') {
+    hops.push({
+      hop: 5,
+      name: `Google Edge Peering Interconnect (${server?.name || 'GGC Appliance'})`,
+      deviceType: 'ixp_switch',
+      roleLabel: 'Google In-Rack Cache Fabric (AS15169)',
+      ip: '172.217.160.1 (Google Edge Cache)',
+      asn: 'AS15169',
+      latencyEstMs: 5.9,
+      location: `${city} Local Edge`,
+      notes: 'Direct peering for YouTube 4K & Google Cloud services',
+    });
+  } else if (srvCategory === 'fna') {
+    hops.push({
+      hop: 5,
+      name: `Meta Direct Peering Appliance (${server?.name || 'FNA Cache'})`,
+      deviceType: 'ixp_switch',
+      roleLabel: 'Meta Edge Appliance Fabric (AS32934)',
+      ip: '157.240.239.1 (Meta Edge Cluster)',
+      asn: 'AS32934',
+      latencyEstMs: 5.6,
+      location: `${city} Local Edge`,
+      notes: 'Direct peering for Instagram Reels & Facebook Video',
+    });
+  } else if (srvCategory === 'global_cdn') {
+    hops.push({
+      hop: 5,
+      name: 'Cloudflare / Global Anycast Border Gateway',
+      deviceType: 'ixp_switch',
+      roleLabel: 'Anycast Border Router (AS13335)',
+      ip: '172.67.74.1 (Anycast POP)',
+      asn: 'AS13335',
+      latencyEstMs: 8.2,
+      location: `${city} / Regional Anycast POP`,
+      notes: 'BGP Anycast routing to closest continental edge',
+    });
+  } else {
+    // IIG: Submarine cable landing gateway
+    hops.push({
+      hop: 5,
+      name: `Submarine Cable Landing Terminal (${cable})`,
+      deviceType: 'landing_station',
+      roleLabel: 'IIG International Gateway Terminal',
+      ip: '182.16.155.1 (BSCCL Kuakata/Cox Landing Station)',
+      asn: 'AS24389',
+      latencyEstMs: 14.5,
+      location: 'Kuakata / Cox\'s Bazar Landing Terminal',
+      notes: `${cable} • Subsea fiber amplifier & high-voltage optical repeater`,
+    });
+
+    if (dist > 500) {
+      hops.push({
+        hop: 6,
+        name: `International Subsea Carrier Gateway (${srvLocation})`,
+        deviceType: 'transit_carrier',
+        roleLabel: 'Tier-1 Submarine Carrier Backbone',
+        ip: '180.87.12.33 (Equinix / SingTel / Tata Transit)',
+        asn: 'AS6453 / AS9498',
+        latencyEstMs: Math.max(26, Math.round(dist * 0.025)),
+        location: srvLocation,
+        notes: `Intercontinental subsea transit hop (~${dist.toLocaleString()} km)`,
+      });
+    }
+  }
+
+  // Final Hop: Destination Main Server
+  const finalHopIndex = hops.length + 1;
+  const finalLatency = dist > 100 ? Math.round((dist * 1.35 * 2) / 204) + 6 : 8;
+
+  hops.push({
+    hop: finalHopIndex,
+    name: srvName,
+    deviceType: 'destination_server',
+    roleLabel: 'Main Target Speed Test Server Socket',
+    ip: targetIp,
+    asn: server?.provider?.match(/AS\d+/)?.[0] || 'AS-Target',
+    latencyEstMs: finalLatency,
+    location: srvLocation,
+    notes: `${server?.transitDetails || 'Direct Wire Socket Benchmark Daemon'}`,
+    isMainServer: true,
+  });
+
+  return hops;
 }

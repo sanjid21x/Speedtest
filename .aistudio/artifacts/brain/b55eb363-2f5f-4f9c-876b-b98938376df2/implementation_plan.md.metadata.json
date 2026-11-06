@@ -1,0 +1,6 @@
+{
+  "summary": "Implementation plan for renaming Network Identity to ISP Info, cleaning category tabs to single labels (BDIX, IIG, FNA, GGC, CDN), removing the 100% real test badge, and adding an expandable hop-by-hop backend connection route diagram with IP, router types, and latency inside the ISP Info card.",
+  "updatedAt": "2026-11-06T03:52:40.748071849Z",
+  "requestFeedback": true,
+  "userFacing": true
+}
