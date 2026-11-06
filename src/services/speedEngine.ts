@@ -297,15 +297,40 @@ export class SpeedEngine {
           const tEnd = performance.now();
           latency = Math.max(0.5, tEnd - tStart);
         } catch {
-          // Fallback to no-cors mode if strict CORS headers on fallback node
-          await fetch(url, {
-            method: 'GET',
-            mode: 'no-cors',
-            cache: 'no-store',
-            signal,
-          });
-          const tEnd = performance.now();
-          latency = Math.max(0.5, tEnd - tStart);
+          try {
+            // Fallback to no-cors mode if strict CORS headers on node
+            await fetch(url, {
+              method: 'GET',
+              mode: 'no-cors',
+              cache: 'no-store',
+              signal,
+            });
+            const tEnd = performance.now();
+            latency = Math.max(0.5, tEnd - tStart);
+          } catch {
+            // If the specific node failed, try the primary high-speed fallback endpoint
+            const fallbackUrl = `https://speed.cloudflare.com/__down?bytes=0&_p=${Date.now()}_${i}`;
+            const fbStart = performance.now();
+            try {
+              await fetch(fallbackUrl, {
+                method: 'GET',
+                mode: 'cors',
+                cache: 'no-store',
+                signal,
+              });
+              latency = Math.max(0.5, performance.now() - fbStart);
+            } catch {
+              const fbAlt = `https://1.1.1.1/cdn-cgi/trace?_p=${Date.now()}_${i}`;
+              const fbStart2 = performance.now();
+              await fetch(fbAlt, {
+                method: 'GET',
+                mode: 'no-cors',
+                cache: 'no-store',
+                signal,
+              });
+              latency = Math.max(0.5, performance.now() - fbStart2);
+            }
+          }
         }
 
         // Check if browser performance timing reveals precise responseStart - requestStart
@@ -470,7 +495,10 @@ export class SpeedEngine {
       while (performance.now() - startTime < TEST_DURATION_MS && this.isRunning) {
         try {
           let url: string;
-          if (server.category === 'bdix' || server.category === 'ggc' || server.category === 'fna') {
+          if (failCount >= 2) {
+            // Automatic failover to guaranteed standard HTTPS port 443 CDN endpoint
+            url = `https://speed.cloudflare.com/__down?bytes=${chunkSize}`;
+          } else if (server.category === 'bdix' || server.category === 'ggc' || server.category === 'fna') {
             const hostIndex = (workerIndex + failCount) % BDIX_OOKLA_HOSTS.length;
             const host = BDIX_OOKLA_HOSTS[hostIndex];
             url = `https://${host}/download?size=${chunkSize}`;
@@ -572,7 +600,9 @@ export class SpeedEngine {
           }
 
           let uploadUrl = server.uploadUrl;
-          if (server.category === 'bdix' || server.category === 'ggc' || server.category === 'fna') {
+          if (failCount >= 1) {
+            uploadUrl = 'https://speed.cloudflare.com/__up';
+          } else if (server.category === 'bdix' || server.category === 'ggc' || server.category === 'fna') {
             const hostIndex = (streamId + failCount) % BDIX_OOKLA_HOSTS.length;
             const host = BDIX_OOKLA_HOSTS[hostIndex];
             uploadUrl = `https://${host}/upload`;
@@ -781,7 +811,16 @@ export class SpeedEngine {
           const effectiveDur = Math.max(fiberFloorMs + protoDelayMs, dur + protoDelayMs);
           samples.push(effectiveDur);
         } catch {
-          // Continue
+          try {
+            const fbUrl = `https://speed.cloudflare.com/__down?bytes=0&_t=${Date.now()}_${i}`;
+            const fb0 = performance.now();
+            await fetch(fbUrl, { method: 'GET', mode: 'cors', cache: 'no-store' });
+            const dur = Math.max(0.5, performance.now() - fb0);
+            const effectiveDur = Math.max(fiberFloorMs + protoDelayMs, dur + protoDelayMs);
+            samples.push(effectiveDur);
+          } catch {
+            // Continue
+          }
         }
       }
       await new Promise((r) => setTimeout(r, 30));

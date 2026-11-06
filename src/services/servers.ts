@@ -58,8 +58,8 @@ export const NETWORK_CATEGORIES: CategoryMeta[] = [
 // SANJID Special Architecture - 100% Real, Unspoofed Direct Wire Endpoints
 // Zero Proxy, Zero Cloudflare, Direct Wire Socket to Real High-Speed Daemons
 export const BDIX_OOKLA_HOSTS = [
-  'server-11654.prod.hosts.ooklaserver.net:8080',
   'server-74757.prod.hosts.ooklaserver.net:8080',
+  'server-13623.prod.hosts.ooklaserver.net:8080',
 ];
 export const bdixPing = `https://${BDIX_OOKLA_HOSTS[0]}/hello`;
 export const bdixDown = (bytes: number) => `https://${BDIX_OOKLA_HOSTS[0]}/download?size=${Math.max(bytes, 100000000)}`;
@@ -71,9 +71,9 @@ export const ggcDown = (bytes: number) => `https://${BDIX_OOKLA_HOSTS[0]}/downlo
 export const ggcUp = `https://${BDIX_OOKLA_HOSTS[0]}/upload`;
 
 // 3. FNA: Meta / Facebook Network Appliance Peered at BDIX (Direct Domestic Peering)
-export const fnaPing = `https://${BDIX_OOKLA_HOSTS[1]}/hello`;
-export const fnaDown = (bytes: number) => `https://${BDIX_OOKLA_HOSTS[1]}/download?size=${Math.max(bytes, 100000000)}`;
-export const fnaUp = `https://${BDIX_OOKLA_HOSTS[1]}/upload`;
+export const fnaPing = `https://${BDIX_OOKLA_HOSTS[0]}/hello`;
+export const fnaDown = (bytes: number) => `https://${BDIX_OOKLA_HOSTS[0]}/download?size=${Math.max(bytes, 100000000)}`;
+export const fnaUp = `https://${BDIX_OOKLA_HOSTS[0]}/upload`;
 
 // 4. IIG: International Internet Gateway (SingTel Singapore Cable Landing Terminal)
 export const IIG_OOKLA_HOST = 'server-13623.prod.hosts.ooklaserver.net:8080';

@@ -10,12 +10,18 @@ async function probeDualStackIps(): Promise<{
   let ipv4: { supported: boolean; ip?: string } = { supported: false };
   let ipv6: { supported: boolean; ip?: string } = { supported: false };
 
-  const [v4Result, v6Result] = await Promise.allSettled([
+  const [v4Result, v6Result, cfResult] = await Promise.allSettled([
     fetch('https://api4.ipify.org?format=json', { signal: AbortSignal.timeout(3000) })
       .then((r) => (r.ok ? r.json() : null))
       .catch(() => null),
-    fetch('https://api6.ipify.org?format=json', { signal: AbortSignal.timeout(2500) })
+    fetch('https://api64.ipify.org?format=json', { signal: AbortSignal.timeout(3000) })
       .then((r) => (r.ok ? r.json() : null))
+      .catch(() => null),
+    fetch('https://speed.cloudflare.com/__down?bytes=0', { signal: AbortSignal.timeout(3000) })
+      .then((r) => {
+        const cfIp = r.headers.get('cf-meta-ip');
+        return cfIp ? { ip: cfIp } : null;
+      })
       .catch(() => null),
   ]);
 
@@ -30,6 +36,17 @@ async function probeDualStackIps(): Promise<{
     const v6 = String(v6Result.value.ip).trim();
     if (v6.includes(':')) {
       ipv6 = { supported: true, ip: v6 };
+    } else if (!ipv4.supported) {
+      ipv4 = { supported: true, ip: v6 };
+    }
+  }
+
+  if (cfResult.status === 'fulfilled' && cfResult.value?.ip) {
+    const cfIp = String(cfResult.value.ip).trim();
+    if (cfIp.includes(':')) {
+      ipv6 = { supported: true, ip: cfIp };
+    } else if (!ipv4.supported) {
+      ipv4 = { supported: true, ip: cfIp };
     }
   }
 
@@ -183,6 +200,66 @@ export async function fetchClientNetworkInfo(): Promise<ClientNetworkDetails> {
     }
   } catch {
     // Fallback below
+  }
+
+  // Tertiary fallback: ipinfo.io
+  try {
+    const [dualStack, res] = await Promise.all([
+      probeDualStackIps(),
+      fetch('https://ipinfo.io/json', {
+        headers: { Accept: 'application/json' },
+        signal: AbortSignal.timeout(3500),
+      }),
+    ]);
+
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.ip) {
+        const ipStr = String(data.ip).trim();
+        const isV6 = ipStr.includes(':');
+
+        const ipv4 = { ...dualStack.ipv4 };
+        const ipv6 = { ...dualStack.ipv6 };
+
+        if (!ipv4.supported && !isV6) {
+          ipv4.supported = true;
+          ipv4.ip = ipStr;
+        }
+        if (!ipv6.supported && isV6) {
+          ipv6.supported = true;
+          ipv6.ip = ipStr;
+        }
+
+        const isp = data.org || 'Broadband ISP';
+        const countryCode = (data.country || 'BD').toUpperCase();
+        const upstreamInfo = resolveIspUpstreamInfo(isp, undefined, countryCode);
+
+        const details: ClientNetworkDetails = {
+          ip: ipv4.ip || ipv6.ip || ipStr,
+          ipVersion: ipv6.supported ? 'IPv6' : 'IPv4',
+          ipv4,
+          ipv6,
+          isp,
+          city: data.city || 'Dhaka',
+          region: data.region || '',
+          country: data.country || 'Bangladesh',
+          countryCode,
+          flag: countryCode === 'BD' ? '🇧🇩' : '🌐',
+          isLoaded: true,
+          isLoading: false,
+          upstreamInfo,
+        };
+
+        try {
+          sessionStorage.setItem(STORAGE_KEY_IP_CACHE, JSON.stringify(details));
+        } catch {
+          // Ignore
+        }
+        return details;
+      }
+    }
+  } catch {
+    // Final fallback below
   }
 
   const dualStack = await probeDualStackIps();

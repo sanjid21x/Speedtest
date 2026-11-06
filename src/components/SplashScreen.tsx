@@ -43,7 +43,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
 
         {/* Title */}
         <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight bg-gradient-to-r from-white via-cyan-100 to-cyan-400 bg-clip-text text-transparent">
-          SpeedTest
+          Speed Test by Sanjid
         </h1>
 
         {/* Subtitle brand requirement */}

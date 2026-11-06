@@ -290,7 +290,7 @@ export const TOP_DNS_SERVERS: DnsServerEndpoint[] = [
     category: 'domestic',
     categoryLabel: 'Domestic BDIX',
     features: ['Domestic National Gateway', 'Local Dhaka Routing', 'Submarine Redundancy'],
-    probeUrl: 'https://server-11654.prod.hosts.ooklaserver.net:8080/hello',
+    probeUrl: 'https://server-74757.prod.hosts.ooklaserver.net:8080/hello',
     dohSupported: false,
     flag: '🇧🇩',
     location: 'Moghbazar BTCL Datacenter, Dhaka',
@@ -304,7 +304,7 @@ export const TOP_DNS_SERVERS: DnsServerEndpoint[] = [
     category: 'domestic',
     categoryLabel: 'Domestic BDIX',
     features: ['Direct BDIX Optical Ring', 'Sub-5ms Domestic Latency', 'Local Cache'],
-    probeUrl: 'https://server-11654.prod.hosts.ooklaserver.net:8080/hello',
+    probeUrl: 'https://server-74757.prod.hosts.ooklaserver.net:8080/hello',
     dohSupported: false,
     flag: '🇧🇩',
     location: 'Mohakhali DOHS, Dhaka',
@@ -589,7 +589,7 @@ export async function detectCurrentDnsInfo(
   // Run 5 rapid stability probes to calculate consistency and jitter
   const probeSamples: number[] = [];
   const testEndpoints = [
-    'https://server-11654.prod.hosts.ooklaserver.net:8080/hello',
+    'https://server-74757.prod.hosts.ooklaserver.net:8080/hello',
     'https://dns.google/resolve?name=connectivitycheck.gstatic.com&type=A',
     'https://cloudflare-dns.com/dns-query?name=speed.cloudflare.com&type=A',
   ];
@@ -688,7 +688,7 @@ export async function probeCurrentDnsLiveSample(
   let sampleTime = 12;
 
   try {
-    const bust = `https://server-11654.prod.hosts.ooklaserver.net:8080/hello?_lp=${Date.now()}`;
+    const bust = `https://server-74757.prod.hosts.ooklaserver.net:8080/hello?_lp=${Date.now()}`;
     const res = await fetch(bust, {
       method: 'GET',
       mode: 'cors',
