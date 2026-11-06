@@ -41,6 +41,10 @@ export interface SpeedTestServer {
   routingInfo?: string;
   flag?: string;
   ipAddress?: string;
+  ipv4Address?: string;
+  ipv6Address?: string;
+  distanceKm?: number;
+  cableSystem?: string;
   siteType?: 'Domestic BDIX Site' | 'IIG Submarine Gateway' | 'GGC ISP Cache Edge' | 'FNA Meta Peering Edge' | 'Global Anycast CDN';
   transitDetails?: string;
   ipv4Only?: boolean;
@@ -77,8 +81,12 @@ export interface SpeedTestResult {
     category?: NetworkCategory;
     categoryLabel?: string;
     ipAddress?: string;
+    ipv4Address?: string;
+    ipv6Address?: string;
     siteType?: string;
     transitDetails?: string;
+    cableSystem?: string;
+    distanceKm?: number;
     ipv4Only?: boolean;
   };
   durationSeconds: number;
@@ -99,6 +107,11 @@ export interface SpeedTestResult {
   threadsCount?: number;
   payloadMb?: number;
   ipProtocol?: IpTestProtocol;
+  sourceIp?: string;
+  targetIp?: string;
+  crossWireMode?: string;
+  mtuBytes?: number;
+  headerOverheadBytes?: number;
 }
 
 export interface RouteProbeResult {
@@ -119,7 +132,7 @@ export interface IspUpstreamInfo {
   totalBandwidth: string;
 }
 
-export type IpTestProtocol = 'ipv4' | 'ipv6';
+export type IpTestProtocol = 'ipv4' | 'ipv6' | 'ipv4_to_ipv6' | 'ipv6_to_ipv4';
 
 export interface ClientNetworkDetails {
   ip: string;

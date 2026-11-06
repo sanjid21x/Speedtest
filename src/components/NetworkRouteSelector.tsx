@@ -186,10 +186,20 @@ export const NetworkRouteSelector: React.FC<NetworkRouteSelectorProps> = ({
                     : 'Global CDN')}
               </span>
               <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-500/10 text-amber-300 border border-amber-500/20">
-                IPv4: {activeServer.ipAddress || (activeServer.category === 'iig' ? '165.21.70.30' : '103.77.188.20')}
+                IPv4: {activeServer.ipv4Address || activeServer.ipAddress || '103.77.188.20'}
               </span>
+              {activeServer.ipv6Address && (
+                <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-purple-500/10 text-purple-300 border border-purple-500/20 hidden sm:inline">
+                  IPv6: {activeServer.ipv6Address}
+                </span>
+              )}
+              {activeServer.cableSystem && (
+                <span className="px-1.5 py-0.5 rounded text-[9.5px] font-mono bg-blue-500/10 text-blue-300 border border-blue-500/20">
+                  {activeServer.cableSystem}
+                </span>
+              )}
               <span className="text-[11px] text-slate-400 font-medium hidden md:inline">
-                • {activeServer.location}
+                • {activeServer.location} {activeServer.distanceKm ? `(~${activeServer.distanceKm.toLocaleString()} km)` : ''}
               </span>
             </div>
             <p className="text-[11px] text-slate-400 mt-1 font-mono">

@@ -209,19 +209,37 @@ Tested on: ${formattedDate}`;
             <span className="text-slate-300 font-medium text-[11px]">{result.server.location}</span>
           </div>
 
-          {/* Tested Server IPv4 Address and Site Classification */}
-          <div className="flex flex-wrap items-center justify-between gap-2 p-2 rounded-lg bg-slate-900/90 border border-slate-800/90 text-[11px]">
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Tested IPv4:</span>
-              <span className="font-mono font-bold text-amber-300 px-1.5 py-0.5 rounded bg-amber-500/10 border border-amber-500/20">
-                {result.server.ipAddress || '103.77.188.20'}
+          {/* Tested Server IP Address, Protocol & Site Classification */}
+          <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 rounded-lg bg-slate-900/90 border border-slate-800/90 text-[11px]">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                {result.ipProtocol === 'ipv6' ? 'Target IPv6:' : result.ipProtocol?.includes('to') ? 'Cross Route:' : 'Target IPv4:'}
               </span>
-              <span className="text-[9.5px] font-mono px-1.5 py-0.2 rounded bg-emerald-500/15 text-emerald-300 font-bold border border-emerald-500/30">
-                IPv4 Only
+              <span className="font-mono font-bold text-amber-300 px-2 py-0.5 rounded bg-amber-500/10 border border-amber-500/20 truncate max-w-[280px]">
+                {result.targetIp || result.server.ipAddress || (result.ipProtocol === 'ipv6' ? '2404:6800:4003:c00::64' : '103.77.188.20')}
+              </span>
+              <span
+                className={`text-[9.5px] font-mono px-2 py-0.5 rounded font-bold border ${
+                  result.ipProtocol === 'ipv6'
+                    ? 'bg-purple-500/15 text-purple-300 border-purple-500/30'
+                    : result.ipProtocol === 'ipv4_to_ipv6'
+                    ? 'bg-cyan-500/15 text-cyan-300 border-cyan-500/30'
+                    : result.ipProtocol === 'ipv6_to_ipv4'
+                    ? 'bg-amber-500/15 text-amber-300 border-amber-500/30'
+                    : 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
+                }`}
+              >
+                {result.ipProtocol === 'ipv4'
+                  ? 'IPv4 Native'
+                  : result.ipProtocol === 'ipv6'
+                  ? 'IPv6 Native'
+                  : result.ipProtocol === 'ipv4_to_ipv6'
+                  ? 'NAT64 Cross-Wire'
+                  : '464XLAT Cross-Wire'}
               </span>
             </div>
 
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1.5 flex-wrap">
               <span className="text-[10px] text-slate-400">Site Type:</span>
               <span
                 className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full border ${
@@ -250,17 +268,39 @@ Tested on: ${formattedDate}`;
             </div>
           </div>
 
-          {/* Transit Routing Details */}
-          <div className="text-[10.5px] text-slate-400 font-mono flex items-center gap-1.5">
-            <span className="text-cyan-400 font-bold">Transit Route:</span>
-            <span>
-              {result.server.transitDetails ||
-                (result.server.category === 'bdix'
-                  ? 'Domestic IXP Peering • Direct Optical Fabric • Zero Subsea Transit • IPv4 Enforced'
-                  : result.server.category === 'iig'
-                  ? 'International Internet Gateway • SMW-4/SMW-5 Submarine Landing • IPv4 Enforced'
-                  : 'Direct Edge PoP Interconnect • IPv4 Enforced')}
-            </span>
+          {/* Wire Mode, MTU & Subsea Cable Route Details */}
+          <div className="space-y-1 pt-1 text-[10.5px] font-mono text-slate-400">
+            {result.sourceIp && (
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="text-slate-400 font-bold">Client IP:</span>
+                <span className="text-slate-200 font-bold">{result.sourceIp}</span>
+                <span className="text-slate-600">➔</span>
+                <span className="text-slate-400 font-bold">Mode:</span>
+                <span className="text-cyan-400">{result.crossWireMode || 'Direct Wire Socket'}</span>
+                {result.mtuBytes && (
+                  <span className="text-[9.5px] px-1.5 py-0.2 rounded bg-slate-800 text-slate-300">
+                    MTU {result.mtuBytes}B
+                  </span>
+                )}
+              </div>
+            )}
+
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="text-cyan-400 font-bold">Transit Route:</span>
+              <span>
+                {result.server.transitDetails || 'Direct Domestic IXP • Optical Fabric'}
+              </span>
+              {result.server.cableSystem && (
+                <span className="text-amber-300 font-bold">
+                  ({result.server.cableSystem})
+                </span>
+              )}
+              {result.server.distanceKm && result.server.distanceKm > 100 && (
+                <span className="text-slate-400">
+                  • ~{result.server.distanceKm.toLocaleString()} km
+                </span>
+              )}
+            </div>
           </div>
         </div>
 

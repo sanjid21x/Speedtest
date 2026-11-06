@@ -295,8 +295,18 @@ export const ServerSelector: React.FC<ServerSelectorProps> = ({
                                   : 'Global CDN')}
                             </span>
                             <span className="text-[9px] px-1.5 py-0.2 rounded font-mono font-bold bg-amber-500/10 text-amber-300 border border-amber-500/20">
-                              IPv4: {srv.ipAddress || (srv.category === 'iig' ? '165.21.70.30' : '103.77.188.20')}
+                              IPv4: {srv.ipv4Address || srv.ipAddress || '103.77.188.20'}
                             </span>
+                            {srv.ipv6Address && (
+                              <span className="text-[9px] px-1.5 py-0.2 rounded font-mono font-bold bg-purple-500/10 text-purple-300 border border-purple-500/20 hidden sm:inline">
+                                IPv6: {srv.ipv6Address}
+                              </span>
+                            )}
+                            {srv.cableSystem && (
+                              <span className="text-[9px] px-1.5 py-0.2 rounded font-mono bg-blue-500/10 text-blue-300 border border-blue-500/20">
+                                {srv.cableSystem}
+                              </span>
+                            )}
                             {srv.isCustom && (
                               <span className="text-[9px] px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300">
                                 Custom
@@ -304,10 +314,10 @@ export const ServerSelector: React.FC<ServerSelectorProps> = ({
                             )}
                           </div>
                           <span className="text-[11px] text-slate-300 truncate font-medium">
-                            {srv.location} • <span className="text-slate-500">{srv.provider}</span>
+                            {srv.location} • <span className="text-slate-500">{srv.provider}</span> {srv.distanceKm ? `(~${srv.distanceKm.toLocaleString()} km)` : ''}
                           </span>
                           <span className="text-[10px] text-slate-400 font-mono truncate mt-0.5">
-                            {srv.transitDetails || srv.routingInfo || 'Direct Optical Interconnect • IPv4 Direct'}
+                            {srv.transitDetails || srv.routingInfo || 'Direct Optical Interconnect • Dual-Stack'}
                           </span>
                         </div>
                       </div>

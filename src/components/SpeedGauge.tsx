@@ -1,5 +1,4 @@
 import React, { useMemo, useState } from 'react';
-import { ConnectionMode, SpeedUnit, TestDurationOption, TestStage } from '../types/speedtest';
 import { formatSpeedValue, getUnitLabel, getUnitDescription } from '../services/unitHelper';
 import {
   Play,
@@ -14,7 +13,10 @@ import {
   Layers,
   Sparkles,
   Radio,
+  AlertTriangle,
+  ArrowRightLeft,
 } from 'lucide-react';
+import { ConnectionMode, SpeedUnit, TestDurationOption, TestStage, IpTestProtocol, ClientNetworkDetails } from '../types/speedtest';
 
 interface SpeedGaugeProps {
   stage: TestStage;
@@ -37,8 +39,9 @@ interface SpeedGaugeProps {
   theme: 'dark' | 'light';
   payloadMb?: number;
   onChangePayloadMb?: (mb: number) => void;
-  ipProtocol?: 'ipv4' | 'ipv6';
-  onChangeIpProtocol?: (proto: 'ipv4' | 'ipv6') => void;
+  ipProtocol?: IpTestProtocol;
+  onChangeIpProtocol?: (proto: IpTestProtocol) => void;
+  clientNetwork?: ClientNetworkDetails;
 }
 
 const DURATION_OPTIONS: { val: TestDurationOption; label: string; tooltip: string }[] = [
@@ -74,6 +77,7 @@ export const SpeedGauge: React.FC<SpeedGaugeProps> = ({
   onChangePayloadMb,
   ipProtocol = 'ipv4',
   onChangeIpProtocol,
+  clientNetwork,
 }) => {
   const [showPayloadCustomizer, setShowPayloadCustomizer] = useState(false);
 
@@ -137,10 +141,10 @@ export const SpeedGauge: React.FC<SpeedGaugeProps> = ({
             : 'bg-white/95 border-slate-200 text-slate-800 shadow-slate-200/60'
         }`}
       >
-        {/* Top Controls Bar: Protocol (IPv4 / IPv6), Threads (1x to 32x), Payload, Duration, Unit Toggle */}
+        {/* Top Controls Bar: Protocol (IPv4 / IPv6 / Cross-Wire), Threads (1x to 32x), Payload, Duration, Unit Toggle */}
         <div className="w-full flex flex-wrap items-center justify-between gap-2.5 mb-3 relative z-10">
           <div className="flex items-center gap-2 flex-wrap">
-            {/* IP Protocol Selector: Test IPv4 vs Test IPv6 */}
+            {/* IP Protocol Selector: Test IPv4 vs Test IPv6 vs Cross-Wire Tests */}
             <div className="flex items-center gap-1 p-0.5 rounded-lg bg-slate-950/60 border border-slate-800">
               <span className="text-[11px] font-semibold text-slate-400 px-1.5 flex items-center gap-1">
                 <Radio className="w-3 h-3 text-cyan-400" />
@@ -168,9 +172,37 @@ export const SpeedGauge: React.FC<SpeedGaugeProps> = ({
                     ? 'bg-gradient-to-r from-purple-500 to-indigo-500 text-white shadow-xs ring-1 ring-purple-400'
                     : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/80'
                 } ${isTesting ? 'opacity-50 cursor-not-allowed' : ''}`}
-                title="Test IPv6 (next-generation IPv6 routing)"
+                title="Test IPv6 (native dual-stack IPv6 routing • requires client IPv6 IP)"
               >
                 IPv6
+              </button>
+              <button
+                type="button"
+                disabled={isTesting}
+                onClick={() => onChangeIpProtocol && onChangeIpProtocol('ipv4_to_ipv6')}
+                className={`px-2 py-0.5 text-xs font-bold font-mono rounded-md transition-all cursor-pointer flex items-center gap-1 ${
+                  ipProtocol === 'ipv4_to_ipv6'
+                    ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-slate-950 shadow-xs ring-1 ring-cyan-400'
+                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/80'
+                } ${isTesting ? 'opacity-50 cursor-not-allowed' : ''}`}
+                title="Cross-Wire Test: IPv4 Client ➔ IPv6 Server via NAT64 / DNS64 State Translation"
+              >
+                <ArrowRightLeft className="w-3 h-3" />
+                <span>v4➔v6</span>
+              </button>
+              <button
+                type="button"
+                disabled={isTesting}
+                onClick={() => onChangeIpProtocol && onChangeIpProtocol('ipv6_to_ipv4')}
+                className={`px-2 py-0.5 text-xs font-bold font-mono rounded-md transition-all cursor-pointer flex items-center gap-1 ${
+                  ipProtocol === 'ipv6_to_ipv4'
+                    ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 shadow-xs ring-1 ring-amber-400'
+                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/80'
+                } ${isTesting ? 'opacity-50 cursor-not-allowed' : ''}`}
+                title="Cross-Wire Test: IPv6 Client ➔ IPv4 Server via 464XLAT / SIIT Translation"
+              >
+                <ArrowRightLeft className="w-3 h-3" />
+                <span>v6➔v4</span>
               </button>
             </div>
 
@@ -250,6 +282,27 @@ export const SpeedGauge: React.FC<SpeedGaugeProps> = ({
             </div>
           </div>
         </div>
+
+        {/* IPv6 Requirement Diagnostic Alert if Native IPv6 Selected but IPv4 Only */}
+        {(ipProtocol === 'ipv6' || ipProtocol === 'ipv6_to_ipv4') &&
+          !clientNetwork?.ipv6?.supported &&
+          !clientNetwork?.ip?.includes(':') && (
+            <div className="w-full mb-3 p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs flex items-center justify-between gap-2 animate-fade-in">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
+                <span>
+                  <strong>IPv6 IP Required:</strong> Your connection has no public IPv6 address. Native IPv6 test requires an IPv6 IP. To test cross-server translation, use <strong className="text-cyan-300">v4➔v6 (NAT64)</strong> or standard <strong className="text-emerald-300">IPv4</strong>.
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => onChangeIpProtocol && onChangeIpProtocol('ipv4_to_ipv6')}
+                className="px-2 py-1 text-[11px] font-bold rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 hover:bg-cyan-500/30 shrink-0 cursor-pointer"
+              >
+                Switch to v4➔v6
+              </button>
+            </div>
+          )}
 
         {/* Custom 100 to 5000 MB Payload Slider Drawer */}
         {showPayloadCustomizer && (
@@ -410,13 +463,23 @@ export const SpeedGauge: React.FC<SpeedGaugeProps> = ({
             <span className="font-bold text-slate-200">{speedDisplay.sub}</span>
             <span className="text-slate-600 hidden sm:inline">•</span>
             <span
-              className={`px-2 py-0.5 rounded font-black text-xs border ${
+              className={`px-2.5 py-0.5 rounded font-black text-xs border ${
                 ipProtocol === 'ipv6'
                   ? 'bg-purple-500/20 text-purple-300 border-purple-500/40'
+                  : ipProtocol === 'ipv4_to_ipv6'
+                  ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40'
+                  : ipProtocol === 'ipv6_to_ipv4'
+                  ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
                   : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
               }`}
             >
-              {ipProtocol.toUpperCase()}
+              {ipProtocol === 'ipv4'
+                ? 'IPv4 Wire'
+                : ipProtocol === 'ipv6'
+                ? 'IPv6 Native'
+                : ipProtocol === 'ipv4_to_ipv6'
+                ? 'IPv4 ➔ IPv6 (NAT64)'
+                : 'IPv6 ➔ IPv4 (464XLAT)'}
             </span>
             <span className="text-slate-600 hidden sm:inline">•</span>
             <span className="text-amber-300 font-bold flex items-center gap-1">

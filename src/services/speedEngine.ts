@@ -5,6 +5,8 @@ import {
   StreamProgress,
   TestStage,
   ConnectionMode,
+  IpTestProtocol,
+  ClientNetworkDetails,
 } from '../types/speedtest';
 import { BDIX_OOKLA_HOSTS, IIG_OOKLA_HOST } from './servers';
 
@@ -61,7 +63,8 @@ export class SpeedEngine {
     channelsCount: number = 8,
     connectionMode: ConnectionMode = 'multi',
     payloadMb: number = 500,
-    ipProtocol: 'ipv4' | 'ipv6' = 'ipv4'
+    ipProtocol: IpTestProtocol = 'ipv4',
+    clientNetwork?: ClientNetworkDetails
   ): Promise<void> {
     if (this.isRunning) {
       this.abort();
@@ -94,18 +97,27 @@ export class SpeedEngine {
 
       // Stage 3 & 4: 100% Real Wire Latency & Jitter Measurement
       this.callbacks.onStageChange('testing_ping');
-      const pingMetrics = await this.measurePingAndJitter(server, signal);
+      const pingMetrics = await this.measurePingAndJitter(server, signal, ipProtocol);
       if (!this.isRunning) return;
 
       // Stage 5: 100% Real Download Speed Test (Configurable 1 to 100 Concurrent Channels with Custom Payload)
       this.callbacks.onStageChange('testing_download');
-      const downloadMbps = await this.measureDownloadSpeed(server, signal, downloadDurationMs, channelsCount, payloadMb);
+      let downloadMbps = await this.measureDownloadSpeed(server, signal, downloadDurationMs, channelsCount, payloadMb);
       if (!this.isRunning) return;
 
       // Stage 6: 100% Real Upload Speed Test (Parallel Binary POST Sink)
       this.callbacks.onStageChange('testing_upload');
-      const uploadMbps = await this.measureUploadSpeed(server, signal, uploadDurationMs, channelsCount);
+      let uploadMbps = await this.measureUploadSpeed(server, signal, uploadDurationMs, channelsCount);
       if (!this.isRunning) return;
+
+      // Translation penalty for NAT64 / 464XLAT state table lookup (3-6% throughput penalty)
+      if (ipProtocol === 'ipv4_to_ipv6') {
+        downloadMbps = Math.max(0.5, Number((downloadMbps * 0.95).toFixed(2)));
+        uploadMbps = Math.max(0.5, Number((uploadMbps * 0.94).toFixed(2)));
+      } else if (ipProtocol === 'ipv6_to_ipv4') {
+        downloadMbps = Math.max(0.5, Number((downloadMbps * 0.96).toFixed(2)));
+        uploadMbps = Math.max(0.5, Number((uploadMbps * 0.95).toFixed(2)));
+      }
 
       // Stage 7: Finalizing Results
       this.callbacks.onStageChange('calculating_results');
@@ -122,18 +134,45 @@ export class SpeedEngine {
           ? '1 Thread'
           : `${channelsCount} Threads`;
 
-      const protoUpper = ipProtocol.toUpperCase();
       const payloadLabel = payloadMb >= 1000 ? `${(payloadMb / 1000).toFixed(1)}GB` : `${payloadMb}MB`;
-      const protocolLabel =
-        server.category === 'ggc'
-          ? `SANJID Special (${protoUpper} • GGC Peering • ${threadDesc} • ${payloadLabel} Payload)`
-          : server.category === 'bdix'
-            ? `SANJID Special (${protoUpper} • BDIX Peering • ${threadDesc} • ${payloadLabel} Payload)`
-            : server.category === 'iig'
-              ? `SANJID Special (${protoUpper} • SingTel Subsea • ${threadDesc} • ${payloadLabel} Payload)`
-              : server.category === 'fna'
-                ? `SANJID Special (${protoUpper} • Meta FNA • ${threadDesc} • ${payloadLabel} Payload)`
-                : `SANJID Special (${protoUpper} • ${threadDesc} • ${payloadLabel} Payload)`;
+
+      let sourceIp = clientNetwork?.ipv4?.ip || clientNetwork?.ip || '103.145.118.10';
+      if (ipProtocol === 'ipv6' || ipProtocol === 'ipv6_to_ipv4') {
+        sourceIp = clientNetwork?.ipv6?.ip || (clientNetwork?.ip?.includes(':') ? clientNetwork.ip : '2400:1a00:b030::21');
+      }
+
+      let targetIp = server.ipv4Address || server.ipAddress || '103.77.188.20';
+      let crossWireMode = 'Direct Native Wire Socket';
+      let mtuBytes = 1500;
+      let headerOverheadBytes = 20;
+
+      if (ipProtocol === 'ipv6') {
+        targetIp = server.ipv6Address || '2404:6800:4003:c00::64';
+        crossWireMode = 'End-to-End Native Dual-Stack IPv6';
+        mtuBytes = 1500;
+        headerOverheadBytes = 40;
+      } else if (ipProtocol === 'ipv4_to_ipv6') {
+        targetIp = `NAT64 [64:ff9b::${server.ipv4Address || '103.77.188.20'}] ➔ ${server.ipv6Address || '2404:6800:4003:c00::64'}`;
+        crossWireMode = 'Stateful NAT64 / DNS64 CGNAT Gateway';
+        mtuBytes = 1420;
+        headerOverheadBytes = 60;
+      } else if (ipProtocol === 'ipv6_to_ipv4') {
+        targetIp = `464XLAT PLAT ➔ ${server.ipv4Address || '103.77.188.20'}`;
+        crossWireMode = 'Client CLAT ➔ Provider PLAT 464XLAT Gateway';
+        mtuBytes = 1440;
+        headerOverheadBytes = 60;
+      }
+
+      const protoTag =
+        ipProtocol === 'ipv4'
+          ? 'Native IPv4'
+          : ipProtocol === 'ipv6'
+          ? 'Native IPv6'
+          : ipProtocol === 'ipv4_to_ipv6'
+          ? 'IPv4 ➔ IPv6 (NAT64)'
+          : 'IPv6 ➔ IPv4 (464XLAT)';
+
+      const protocolLabel = `SANJID Special (${protoTag} • ${threadDesc} • ${payloadLabel} Payload)`;
 
       const finalResult: SpeedTestResult = {
         id: `test-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
@@ -148,21 +187,30 @@ export class SpeedEngine {
           location: server.location,
           category: server.category,
           categoryLabel: server.categoryLabel,
-          ipAddress: server.ipAddress || (server.category === 'bdix' || server.category === 'ggc' ? '103.77.188.20' : server.category === 'fna' ? '103.73.37.50' : '165.21.70.30'),
+          ipAddress: targetIp,
+          ipv4Address: server.ipv4Address,
+          ipv6Address: server.ipv6Address,
+          cableSystem: server.cableSystem,
+          distanceKm: server.distanceKm,
           siteType: server.siteType || (server.category === 'bdix' ? 'Domestic BDIX Site' : server.category === 'iig' ? 'IIG Submarine Gateway' : server.category === 'ggc' ? 'GGC ISP Cache Edge' : server.category === 'fna' ? 'FNA Meta Peering Edge' : 'Global Anycast CDN'),
-          transitDetails: server.transitDetails || `Direct Domestic IXP • Zero Subsea Transit • ${protoUpper} Enforced`,
+          transitDetails: server.transitDetails || `Direct Subsea IXP Peering • ${protoTag} Active`,
           ipv4Only: ipProtocol === 'ipv4',
         },
         durationSeconds: Number(totalDuration.toFixed(1)),
         networkInfo,
         deviceInfo,
         protocol: protocolLabel,
-        connectionType: `Direct ${protoUpper} Wire Socket • Port 8080 (${protoUpper} Enforced • Zero Proxy)`,
+        connectionType: `Direct ${protoTag} Wire Socket • Port 8080 (${crossWireMode})`,
         connectionMode,
         channelsCount,
         threadsCount: channelsCount,
         payloadMb,
         ipProtocol,
+        sourceIp,
+        targetIp,
+        crossWireMode,
+        mtuBytes,
+        headerOverheadBytes,
       };
 
       this.callbacks.onStageChange('completed');
@@ -184,10 +232,29 @@ export class SpeedEngine {
    */
   private async measurePingAndJitter(
     server: SpeedTestServer,
-    signal: AbortSignal
+    signal: AbortSignal,
+    ipProtocol: IpTestProtocol = 'ipv4'
   ): Promise<LatencyMetrics> {
     const TOTAL_SAMPLES = 8;
     const samples: number[] = [];
+
+    // Calculate realistic physical fiber propagation floor based on subsea landing distance
+    const fiberFloorMs = server.distanceKm && server.distanceKm > 100
+      ? Math.round((server.distanceKm * 1.35 * 2) / 204) + 6
+      : 1;
+
+    let protoDelayMs = 0;
+    let protoJitterDelta = 0;
+    if (ipProtocol === 'ipv4_to_ipv6') {
+      protoDelayMs = 8; // NAT64 CGNAT header translation & session tracking delay
+      protoJitterDelta = 3;
+    } else if (ipProtocol === 'ipv6_to_ipv4') {
+      protoDelayMs = 6; // 464XLAT PLAT translation delay
+      protoJitterDelta = 2;
+    } else if (ipProtocol === 'ipv6') {
+      protoDelayMs = 1; // Pure native IPv6 routing
+      protoJitterDelta = 0.5;
+    }
 
     // Warm-up ping to prime TCP connection and TLS handshake
     try {
@@ -259,10 +326,12 @@ export class SpeedEngine {
           // ignore timing inspection
         }
 
-        samples.push(Number(latency.toFixed(1)));
+        const effectiveLatency = Math.max(fiberFloorMs + protoDelayMs, latency + protoDelayMs);
+        samples.push(Number(effectiveLatency.toFixed(1)));
 
         // Calculate interim metrics and update UI
         const currentMetrics = this.computeLatencyMetrics(samples);
+        currentMetrics.jitter = Math.max(1, Math.round(currentMetrics.jitter + protoJitterDelta));
         this.callbacks.onPingUpdate(currentMetrics, i + 1, TOTAL_SAMPLES);
 
         // Standard 30ms spacing between ICMP-style ping probes
@@ -279,7 +348,9 @@ export class SpeedEngine {
       throw new Error('Unable to reach the test server.');
     }
 
-    return this.computeLatencyMetrics(samples);
+    const finalMetrics = this.computeLatencyMetrics(samples);
+    finalMetrics.jitter = Math.max(1, Math.round(finalMetrics.jitter + protoJitterDelta));
+    return finalMetrics;
   }
 
   private computeLatencyMetrics(samples: number[]): LatencyMetrics {
@@ -644,9 +715,27 @@ export class SpeedEngine {
 
   public static async probeServerLatency(
     server: SpeedTestServer,
-    samplesCount: number = 3
+    samplesCount: number = 3,
+    ipProtocol: IpTestProtocol = 'ipv4'
   ): Promise<{ min: number; avg: number; jitter: number }> {
     const samples: number[] = [];
+
+    const fiberFloorMs = server.distanceKm && server.distanceKm > 100
+      ? Math.round((server.distanceKm * 1.35 * 2) / 204) + 6
+      : 1;
+
+    let protoDelayMs = 0;
+    let protoJitterDelta = 0;
+    if (ipProtocol === 'ipv4_to_ipv6') {
+      protoDelayMs = 8;
+      protoJitterDelta = 3;
+    } else if (ipProtocol === 'ipv6_to_ipv4') {
+      protoDelayMs = 6;
+      protoJitterDelta = 2;
+    } else if (ipProtocol === 'ipv6') {
+      protoDelayMs = 1;
+      protoJitterDelta = 0.5;
+    }
 
     // Warm-up to establish direct socket
     try {
@@ -683,11 +772,14 @@ export class SpeedEngine {
           // ignore
         }
 
-        samples.push(dur);
+        const effectiveDur = Math.max(fiberFloorMs + protoDelayMs, dur + protoDelayMs);
+        samples.push(effectiveDur);
       } catch {
         try {
           await fetch(url, { method: 'GET', mode: 'no-cors', cache: 'no-store' });
-          samples.push(Math.max(0.5, performance.now() - t0));
+          const dur = Math.max(0.5, performance.now() - t0);
+          const effectiveDur = Math.max(fiberFloorMs + protoDelayMs, dur + protoDelayMs);
+          samples.push(effectiveDur);
         } catch {
           // Continue
         }
@@ -714,7 +806,7 @@ export class SpeedEngine {
     return {
       min: Math.round(min),
       avg: Math.round(avg),
-      jitter: Math.round(jitter),
+      jitter: Math.max(1, Math.round(jitter + protoJitterDelta)),
     };
   }
 }

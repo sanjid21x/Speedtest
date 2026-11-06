@@ -15,6 +15,7 @@ import {
   TestDurationOption,
   ClientNetworkDetails,
   ConnectionMode,
+  IpTestProtocol,
 } from './types/speedtest';
 import { SpeedEngine } from './services/speedEngine';
 import { getActiveServer, findBestServerForIsp, setSelectedServerId, updateDynamicServers } from './services/servers';
@@ -165,12 +166,12 @@ export default function App() {
     localStorage.setItem('sanjid_speed_payload_mb', String(val));
   };
 
-  // IP Protocol state: 'ipv4' or 'ipv6'
-  const [ipProtocol, setIpProtocol] = useState<'ipv4' | 'ipv6'>(() => {
-    return (localStorage.getItem('speedtest_ip_protocol') as 'ipv4' | 'ipv6') || 'ipv4';
+  // IP Protocol state: 'ipv4' | 'ipv6' | 'ipv4_to_ipv6' | 'ipv6_to_ipv4'
+  const [ipProtocol, setIpProtocol] = useState<IpTestProtocol>(() => {
+    return (localStorage.getItem('speedtest_ip_protocol') as IpTestProtocol) || 'ipv4';
   });
 
-  const handleIpProtocolChange = (proto: 'ipv4' | 'ipv6') => {
+  const handleIpProtocolChange = (proto: IpTestProtocol) => {
     setIpProtocol(proto);
     localStorage.setItem('speedtest_ip_protocol', proto);
   };
@@ -236,6 +237,21 @@ export default function App() {
       return;
     }
 
+    // Authentic IPv6 validation: User must have an IPv6 address to test native IPv6
+    if (ipProtocol === 'ipv6' && !clientNetwork.ipv6?.supported && !clientNetwork.ip?.includes(':')) {
+      setErrorMessage(
+        'Native IPv6 test requires an active public IPv6 address from your ISP. Your network currently only has IPv4. Please select "v4➔v6" (NAT64 Cross-Wire) or "IPv4".'
+      );
+      return;
+    }
+
+    if (ipProtocol === 'ipv6_to_ipv4' && !clientNetwork.ipv6?.supported && !clientNetwork.ip?.includes(':')) {
+      setErrorMessage(
+        'IPv6 ➔ IPv4 (464XLAT) test requires an active IPv6 address from your ISP. Please select "v4➔v6" (NAT64) or "IPv4".'
+      );
+      return;
+    }
+
     setErrorMessage(null);
     setCurrentLiveValue(0);
     setPingValue(0);
@@ -244,7 +260,7 @@ export default function App() {
     setUploadValue(0);
     setLatestResult(null);
 
-    engineRef.current?.start(activeServer, testDuration, channelsCount, connectionMode, payloadMb, ipProtocol);
+    engineRef.current?.start(activeServer, testDuration, channelsCount, connectionMode, payloadMb, ipProtocol, clientNetwork);
   };
 
   const handleStop = () => {
@@ -394,6 +410,7 @@ export default function App() {
             onChangePayloadMb={handlePayloadMbChange}
             ipProtocol={ipProtocol}
             onChangeIpProtocol={handleIpProtocolChange}
+            clientNetwork={clientNetwork}
           />
         </div>
 
